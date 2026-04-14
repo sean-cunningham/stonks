@@ -1,0 +1,59 @@
+# secrets / env
+.env
+.env.*
+!.env.example
+
+# python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+.venv/
+venv/
+ENV/
+env/
+
+# databases / local state
+*.db
+*.sqlite
+*.sqlite3
+*.db-shm
+*.db-wal
+instance/
+tmp/
+temp/
+
+# logs
+*.log
+logs/
+
+# alembic / local migration artifacts if generated locally
+*.pid
+
+# node / frontend
+node_modules/
+dist/
+build/
+.vite/
+
+# test artifacts
+test-results/
+playwright-report/
+
+# IDEs / editors
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# mac / windows junk
+.DS_Store
+Thumbs.db
+
+# optional local Cursor / tooling state if created
+.cursor/
+.cache/
