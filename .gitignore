@@ -57,3 +57,7 @@ Thumbs.db
 # optional local Cursor / tooling state if created
 .cursor/
 .cache/
+
+# generated build metadata
+*.tsbuildinfo
+*.egg-info/
