@@ -13,6 +13,7 @@ from app.models.x_enrichment import XEnrichment
 from app.models.parameter_experiment_result import ParameterExperimentResult
 from app.models.recommendation_item import RecommendationItem
 from app.models.setup_performance_snapshot import SetupPerformanceSnapshot
+from app.models.tastytrade_credential import TastytradeCredential
 from app.models.trade_review import TradeReview
 
 __all__ = [
@@ -32,4 +33,5 @@ __all__ = [
     "SetupPerformanceSnapshot",
     "RecommendationItem",
     "ParameterExperimentResult",
+    "TastytradeCredential",
 ]

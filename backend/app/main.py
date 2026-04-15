@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import (
     analytics,
+    auth_tastytrade,
     balances,
     bot_control,
     candidates,
@@ -43,6 +44,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(auth_tastytrade.router)
 app.include_router(analytics.router)
 app.include_router(status.router)
 app.include_router(balances.router)

@@ -14,13 +14,15 @@ class TastytradeBrokerAdapter:
         settings: Settings,
         tokens: TokenManager,
         rest: TastytradeRestClient | None = None,
+        refresh_token_override: str | None = None,
     ) -> None:
         self._settings = settings
         self._tokens = tokens
         self._rest = rest or TastytradeRestClient(settings)
+        self._refresh_token_override = refresh_token_override
 
     async def refresh_oauth_if_needed(self) -> None:
-        rt = self._settings.tastytrade_refresh_token
+        rt = self._refresh_token_override or self._settings.tastytrade_refresh_token
         if not rt:
             raise RuntimeError("TASTYTRADE_REFRESH_TOKEN not configured")
         if not self._tokens.oauth_needs_refresh():

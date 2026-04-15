@@ -18,6 +18,12 @@
 - `POST /bot/stop`
 - `POST /bot/paper-reset`
 
+## Tastytrade bootstrap (local dev)
+- `GET /auth/tastytrade/login` — starts OAuth login redirect.
+- `GET /auth/tastytrade/callback` — exchanges auth code server-side and stores refresh token metadata.
+- `GET /auth/tastytrade/accounts` — lists available accounts using stored token flow.
+- `POST /auth/tastytrade/select-account` — persists active account and runs broker smoke test (`refresh`, `dxlink token`, `SPY chain`).
+
 ## Analytics (read-only governance)
 - `GET /analytics/summary`
 - `GET /analytics/setups`
