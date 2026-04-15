@@ -7,6 +7,7 @@ from app.core.config import get_settings
 from app.models.active_position import ActivePosition
 from app.models.approved_trade import ApprovedTrade
 from app.models.candidate_trade import CandidateTrade
+from app.models.decision_snapshot import DecisionSnapshot
 from app.models.event_analysis import EventAnalysis
 from app.models.fill import Fill
 from app.models.market_snapshot import MarketSnapshot
@@ -67,6 +68,7 @@ def paper_reset(db: Session = Depends(get_db)) -> BotStateRead:
     settings = get_settings()
     db.execute(delete(ParameterExperimentResult))
     db.execute(delete(RecommendationItem))
+    db.execute(delete(DecisionSnapshot))
     db.execute(delete(TradeReview))
     db.execute(delete(SetupPerformanceSnapshot))
     db.execute(delete(Fill))

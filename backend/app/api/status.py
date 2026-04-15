@@ -6,6 +6,7 @@ from app.core.config import get_settings
 from app.repositories.account_repository import AccountRepository
 from app.repositories.bot_state_repository import BotStateRepository
 from app.repositories.candidate_repository import CandidateRepository
+from app.repositories.decision_snapshot_repository import DecisionSnapshotRepository
 from app.repositories.event_analysis_repository import EventAnalysisRepository
 from app.repositories.position_repository import PositionRepository
 from app.repositories.rejection_repository import RejectionRepository
@@ -15,6 +16,7 @@ from app.schemas.account import BalancesRead
 from app.schemas.active_position import ActivePositionRead
 from app.schemas.approved_trade import ApprovedTradeRead
 from app.schemas.candidate_trade import CandidateTradeRead
+from app.schemas.decision_snapshot import DecisionSnapshotRead
 from app.schemas.event_analysis import EventAnalysisRead
 from app.schemas.rejected_trade import RejectedTradeRead
 from app.schemas.analytics import AnalyticsCompactBlock
@@ -40,6 +42,7 @@ def get_status(db: Session = Depends(get_db)) -> StatusResponse:
     rej_repo = RejectionRepository(db)
     ev_repo = EventAnalysisRepository(db)
     x_repo = XEnrichmentRepository(db)
+    d_repo = DecisionSnapshotRepository(db)
 
     acc = acc_repo.ensure_primary(settings.bot_default_starting_cash)
     bot = bot_repo.get()
@@ -173,6 +176,22 @@ def get_status(db: Session = Depends(get_db)) -> StatusResponse:
             created_at=_iso(r.created_at),
         )
 
+    def dec_read(d) -> DecisionSnapshotRead:
+        return DecisionSnapshotRead(
+            id=d.id,
+            created_at=_iso(d.created_at),
+            symbol=d.symbol,
+            candidate_trade_id=d.candidate_trade_id,
+            approved_trade_id=d.approved_trade_id,
+            bucket=d.bucket,
+            strategy_track=d.strategy_track,
+            hard_vetoes=d.hard_vetoes,
+            hard_veto_codes=d.hard_veto_codes,
+            scores=d.scores,
+            weighted_score=d.weighted_score,
+            explanation=d.explanation,
+        )
+
     return StatusResponse(
         bot=BotStateRead(
             state=bot.state,
@@ -187,6 +206,7 @@ def get_status(db: Session = Depends(get_db)) -> StatusResponse:
         recent_x_enrichments=[x_read(x) for x in x_repo.list_recent(10)],
         recent_candidates=[cand_read(c) for c in cand_repo.list_recent(15)],
         recent_rejections=[rej_read(r) for r in rej_repo.list_recent(15)],
+        recent_decisions=[dec_read(d) for d in d_repo.list_recent(20)],
         latest_account_snapshot_at=_iso(acc.updated_at),
         realized_pnl=acc.realized_pnl,
         unrealized_pnl=acc.unrealized_pnl,

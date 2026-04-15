@@ -4,6 +4,7 @@ from app.models.approved_trade import ApprovedTrade
 from app.models.base import Base
 from app.models.bot_state import BotStateRow
 from app.models.candidate_trade import CandidateTrade
+from app.models.decision_snapshot import DecisionSnapshot
 from app.models.event_analysis import EventAnalysis
 from app.models.fill import Fill
 from app.models.market_snapshot import MarketSnapshot
@@ -21,6 +22,7 @@ __all__ = [
     "MarketSnapshot",
     "EventAnalysis",
     "CandidateTrade",
+    "DecisionSnapshot",
     "ApprovedTrade",
     "RejectedTrade",
     "ActivePosition",

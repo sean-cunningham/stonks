@@ -56,6 +56,8 @@ class EventAnalysisService:
         return row, None
 
     async def _maybe_enrich_with_xai(self, packet: NormalizedEventPacket, event_analysis_id: int, materiality_score: int) -> None:
+        if self._settings.v1_disable_xai_runtime:
+            return
         if not self._settings.xai_enable_x_search_enrichment:
             return
         if materiality_score < self._settings.xai_enrichment_min_materiality_score:

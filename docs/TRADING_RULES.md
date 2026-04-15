@@ -1,12 +1,25 @@
-# Trading rules (V1)
+# Trading Rules — V1
 
-## Setups
-- `bullish_post_event_confirmation`, `bearish_post_event_confirmation`, `anticipatory_macro_event` (macro event type only for anticipatory).
+## Scope
+- ETF universe only: SPY, QQQ, IWM, XLF, XLK, TLT, SLV.
+- Intraday only, force flat by 15:30 ET.
+- No event-burst auto trading, no overnight auto trades.
 
-## Risk
-- 3% max risk per trade, 5% daily loss, 8% weekly loss (paper account metrics).
-- Structure-based stops with breakeven move, partial profit, and trailing logic.
+## Strategy A (auto-execute eligible)
+- Setup families: trend continuation, failed breakout/rejection.
+- Hard veto must pass before scoring.
+- Minimum reward to first target: 1.5R.
+- Contract constraints: DTE 7-14, delta 0.50-0.65, strict spread filters.
 
-## Learning and analytics
-- Completed trades are journaled for **analysis and review only**.
-- **Recommendations and shadow experiments do not alter live behavior.** Operators may use them to propose changes; any change must be coded and deployed deliberately after validation.
+## Strategy B (recommend-only)
+- Outside Strategy A auto boundaries (e.g., overnight, event-volatility, unsupported structures).
+- Subject to recommendation quotas and payload discipline.
+
+## Classification thresholds
+- AUTO_EXECUTE: weighted >= 30 and category floors satisfied, Strategy A only.
+- RECOMMEND_ONLY: weighted >= 23 with floor checks and at least one recommend driver.
+- REJECT: otherwise.
+
+## Governance
+- Recommendations are suggested changes for human review only.
+- No autonomous parameter/rule adaptation in live flow.

@@ -34,11 +34,13 @@ class PaperBroker:
         cand = self._db.get(CandidateTrade, approved.candidate_trade_id)
         if not cand:
             return None
-        order = {"strategy": cand.strategy, "legs": cand.legs}
+        option_contract = ((cand.metadata_json or {}).get("option_contract") or {})
+        order = {"strategy": cand.strategy, "legs": cand.legs, "option_contract": option_contract}
         v = self.dry_run(order)
         if not v.ok:
             return None
         qty = 1
+        structure = "debit_spread" if cand.strategy == "debit_spread" else "single_leg"
         fr = compute_open_fill(
             side="buy",
             bid=bid,
@@ -47,6 +49,7 @@ class PaperBroker:
             quantity=qty,
             slippage_bps=self._settings.paper_slippage_bps,
             partial_max_fraction=self._settings.paper_partial_fill_max_fraction,
+            structure=structure,
         )
         fee = self._settings.paper_fee_per_contract * max(1, len(cand.legs))
         cost = fr.price * fr.quantity * 100 + fee

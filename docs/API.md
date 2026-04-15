@@ -1,20 +1,30 @@
-# API
+# API — V1
 
-## Health & status
-- `GET /health` — liveness.
-- `GET /status` — bot state, balances, recent entities, **analytics_compact** (win rate, expectancy preview, exit-quality top, governance note).
+## Core
+- `GET /health`
+- `GET /status`
+- `GET /balances`
+- `GET /positions`
+- `GET /trades`
+- `GET /candidates`
+- `GET /rejections`
+- `GET /event-analyses`
+- `GET /x-enrichments`
+- `GET /decisions` (deterministic decision snapshots)
 
-## Analytics (read-only learning)
-- `GET /analytics/summary` — overall metrics, exit-quality counts, top reason codes, anticipatory vs confirmed slices, governance note.
-- `GET /analytics/setups` — per–setup-type performance rows.
-- `GET /analytics/symbols` — per-symbol performance rows.
-- `GET /analytics/recommendations?refresh=true|false` — stored suggestions for human review; `refresh=true` may append new rows from latest stats.
-- `GET /analytics/trades/{trade_id}/review` — **trade_id** = `approved_trades.id`; full journal + shadow experiments, or 404 if not closed/journaled.
+## Bot control
+- `GET /bot/state`
+- `POST /bot/start`
+- `POST /bot/stop`
+- `POST /bot/paper-reset`
 
-## Operations
-- `GET /balances`, `GET /positions`, `GET /trades`, `GET /event-analyses`, `GET /x-enrichments`, `GET /candidates`, `GET /rejections`.
-- `GET /bot/state`, `POST /bot/start`, `POST /bot/stop`, `POST /bot/paper-reset` — reset clears analytics tables along with trading history.
+## Analytics (read-only governance)
+- `GET /analytics/summary`
+- `GET /analytics/setups`
+- `GET /analytics/symbols`
+- `GET /analytics/recommendations`
+- `GET /analytics/trades/{approved_trade_id}/review`
 
-## Field notes
-- Status and positions include trade-management and **MFE/MAE water-mark** fields on open positions.
-- Candidates and event analyses expose setup scoring and reason codes.
+## Status payload notes
+- Includes recent decisions (`bucket`, `strategy_track`, veto codes, weighted score).
+- Includes analytics compact block.

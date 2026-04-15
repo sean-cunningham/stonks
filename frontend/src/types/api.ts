@@ -134,6 +134,21 @@ export interface AnalyticsCompactBlock {
   governance_note: string;
 }
 
+export interface DecisionSnapshotRead {
+  id: number;
+  created_at: string;
+  symbol: string;
+  candidate_trade_id: number | null;
+  approved_trade_id: number | null;
+  bucket: string;
+  strategy_track: string;
+  hard_vetoes: string[];
+  hard_veto_codes: string[];
+  scores: Record<string, unknown> | null;
+  weighted_score: number | null;
+  explanation: string | null;
+}
+
 export interface StatusResponse {
   bot: BotStateRead;
   balances: BalancesRead;
@@ -144,6 +159,7 @@ export interface StatusResponse {
   recent_x_enrichments: XEnrichmentRead[];
   recent_candidates: CandidateTradeRead[];
   recent_rejections: RejectedTradeRead[];
+  recent_decisions: DecisionSnapshotRead[];
   latest_account_snapshot_at: string | null;
   realized_pnl: number;
   unrealized_pnl: number;

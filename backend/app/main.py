@@ -12,6 +12,7 @@ from app.api import (
     balances,
     bot_control,
     candidates,
+    decisions,
     event_analyses,
     health,
     positions,
@@ -47,6 +48,7 @@ app.include_router(status.router)
 app.include_router(balances.router)
 app.include_router(positions.router)
 app.include_router(trades.router)
+app.include_router(decisions.router)
 app.include_router(event_analyses.router)
 app.include_router(candidates.router)
 app.include_router(rejections.router)

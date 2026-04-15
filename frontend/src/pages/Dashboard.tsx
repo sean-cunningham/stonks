@@ -525,6 +525,25 @@ export function Dashboard() {
                   </ul>
                 )}
               </SectionCard>
+
+              <SectionCard title="Decision buckets">
+                {status.recent_decisions.length === 0 ? (
+                  <p className="text-sm text-slate-500">No decisions yet.</p>
+                ) : (
+                  <ul className="max-h-56 space-y-2 overflow-y-auto text-xs">
+                    {status.recent_decisions.map((d) => (
+                      <li key={d.id} className="rounded border border-slate-800 bg-slate-950/60 p-2">
+                        <div className="text-slate-200">
+                          {d.symbol} · <span className="text-sky-300">{d.bucket}</span> · {d.strategy_track}
+                        </div>
+                        <div className="text-slate-500">
+                          {(d.weighted_score ?? 0).toFixed(2)} · {(d.hard_veto_codes || []).join(", ")}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </SectionCard>
             </div>
 
             <p className="text-center text-xs text-slate-600">

@@ -5,6 +5,7 @@ from app.schemas.account import BalancesRead
 from app.schemas.active_position import ActivePositionRead
 from app.schemas.approved_trade import ApprovedTradeRead
 from app.schemas.candidate_trade import CandidateTradeRead
+from app.schemas.decision_snapshot import DecisionSnapshotRead
 from app.schemas.event_analysis import EventAnalysisRead
 from app.schemas.rejected_trade import RejectedTradeRead
 from app.schemas.x_enrichment import XEnrichmentRead
@@ -37,6 +38,7 @@ class StatusResponse(BaseModel):
     recent_x_enrichments: list[XEnrichmentRead]
     recent_candidates: list[CandidateTradeRead]
     recent_rejections: list[RejectedTradeRead]
+    recent_decisions: list[DecisionSnapshotRead]
     latest_account_snapshot_at: str | None
     realized_pnl: float
     unrealized_pnl: float

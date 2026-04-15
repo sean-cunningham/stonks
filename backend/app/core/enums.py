@@ -43,3 +43,21 @@ class TradeApprovalStatus(StrEnum):
     PENDING = "pending"
     FILLED = "filled"
     CANCELLED = "cancelled"
+
+
+class DecisionBucket(StrEnum):
+    AUTO_EXECUTE = "AUTO_EXECUTE"
+    RECOMMEND_ONLY = "RECOMMEND_ONLY"
+    REJECT = "REJECT"
+
+
+class RegimeState(StrEnum):
+    TREND_UP = "TREND_UP"
+    TREND_DOWN = "TREND_DOWN"
+    CHOP = "CHOP"
+    FREEZE = "FREEZE"
+
+
+class StrategyTrack(StrEnum):
+    STRATEGY_A = "strategy_a"
+    STRATEGY_B = "strategy_b"

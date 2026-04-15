@@ -32,7 +32,7 @@ class Settings(BaseSettings):
         validation_alias="BOT_DEFAULT_STARTING_CASH",
     )
     bot_default_max_risk_per_trade_pct: float = Field(
-        default=3.0,
+        default=1.0,
         validation_alias="BOT_DEFAULT_MAX_RISK_PER_TRADE_PCT",
     )
     bot_default_max_daily_loss_pct: float = Field(
@@ -44,8 +44,48 @@ class Settings(BaseSettings):
         validation_alias="BOT_DEFAULT_MAX_WEEKLY_LOSS_PCT",
     )
     bot_default_max_open_positions: int = Field(
-        default=1,
+        default=2,
         validation_alias="BOT_DEFAULT_MAX_OPEN_POSITIONS",
+    )
+    bot_default_max_open_positions_per_symbol: int = Field(
+        default=1,
+        validation_alias="BOT_DEFAULT_MAX_OPEN_POSITIONS_PER_SYMBOL",
+    )
+    bot_default_approved_universe: str = Field(
+        default="SPY,QQQ,IWM,XLF,XLK,TLT,SLV",
+        validation_alias="BOT_DEFAULT_APPROVED_UNIVERSE",
+    )
+    paper_normal_risk_tier_pct: float = Field(
+        default=1.0,
+        validation_alias="PAPER_NORMAL_RISK_TIER_PCT",
+    )
+    paper_strong_risk_tier_pct: float = Field(
+        default=1.5,
+        validation_alias="PAPER_STRONG_RISK_TIER_PCT",
+    )
+    paper_max_risk_tier_pct: float = Field(
+        default=2.0,
+        validation_alias="PAPER_MAX_RISK_TIER_PCT",
+    )
+    paper_max_combined_open_risk_pct: float = Field(
+        default=3.0,
+        validation_alias="PAPER_MAX_COMBINED_OPEN_RISK_PCT",
+    )
+    paper_daily_drawdown_stop_pct: float = Field(
+        default=5.0,
+        validation_alias="PAPER_DAILY_DRAWDOWN_STOP_PCT",
+    )
+    paper_stop_new_entries_after_losses: int = Field(
+        default=3,
+        validation_alias="PAPER_STOP_NEW_ENTRIES_AFTER_LOSSES",
+    )
+    paper_recommendation_max_per_day: int = Field(
+        default=3,
+        validation_alias="PAPER_RECOMMENDATION_MAX_PER_DAY",
+    )
+    paper_recommendation_max_per_symbol_per_day: int = Field(
+        default=1,
+        validation_alias="PAPER_RECOMMENDATION_MAX_PER_SYMBOL_PER_DAY",
     )
     bot_no_new_trades_minutes_before_close: int = Field(
         default=30,
@@ -100,6 +140,10 @@ class Settings(BaseSettings):
     xai_enable_x_search_enrichment: bool = Field(
         default=False,
         validation_alias="XAI_ENABLE_X_SEARCH_ENRICHMENT",
+    )
+    v1_disable_xai_runtime: bool = Field(
+        default=True,
+        validation_alias="V1_DISABLE_XAI_RUNTIME",
     )
     xai_enrichment_max_calls_per_day: int = Field(
         default=25,

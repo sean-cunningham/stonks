@@ -1,18 +1,30 @@
-# Architecture — Event Edge Bot 2k
+# Architecture — Event Edge Bot 2k v1
 
-## Core pipeline
-- **Events:** official-first ingestion; optional TheNewsAPI supplemental headlines (tagged IDs).
-- **Primary reasoning:** OpenAI Responses (triage / escalation) produces structured event judgments and setup scores.
-- **Optional enrichment:** xAI sidecar for X/social context; gated by limits and allowlists.
-- **Strategy:** setup library (bullish/bearish post-event confirmation, anticipatory macro) with scoring, confirmation levels, and cross-market checks for indices.
-- **Policy / risk:** fusion checklist and account limits; paper execution with structured trade management (stops, breakeven, partials, trail).
+## Decision pipeline
+- Ingest market/events/account inputs.
+- Normalize and freshness-check data.
+- Compute deterministic 1m/5m/15m feature set.
+- Apply context outputs (primary + adversarial) through deterministic arbiter.
+- Persist decision snapshot.
+- Run hard veto layer before scoring.
+- Score survivors and classify to `AUTO_EXECUTE`, `RECOMMEND_ONLY`, or `REJECT`.
+- Execute only Strategy A `AUTO_EXECUTE` signals.
 
-## Controlled learning layer (analytics only)
-- **Trade reviews:** on position close, a `trade_review` row captures P&L, R-multiple, MFE/MAE from high/low water marks, hold time, enrichment flags, exit-quality label, and policy snapshot.
-- **Analytics engine:** aggregates win rate, expectancy, profit factor, R-milestone rates, exit-quality mix, and slices by setup, symbol, trade family, etc.
-- **Recommendations:** `recommendation_item` rows are **suggested for human review**; the execution and policy layers **must not** read or apply them automatically.
-- **Shadow experiments:** `parameter_experiment_result` stores offline what-if narratives tied to a review (not executed trades).
+## Strategy split
+- Strategy A (auto): trend continuation and failed breakout/rejection families.
+- Strategy B (recommend-only): any attractive idea outside Strategy A auto constraints (event-vol, overnight, noncompliant risk/contract constraints).
 
-## Governance
-- No autonomous live adaptation, RL, or self-rewriting production rules driven by this layer.
-- Changes to thresholds, stops, or filters require explicit human approval and validation (replay / extended paper).
+## Risk and execution defaults
+- Risk tiers: 1.0% / 1.5% / 2.0%.
+- Max 1 open position per symbol, 2 total, 3% combined open risk during launch.
+- Stop new entries at 3 losses/day or drawdown stop.
+- Limit-at-mid, one improvement, chase caps, no endless chasing.
+
+## Context behavior
+- OpenAI context is advisory only.
+- Deterministic arbiter can: do nothing, reduce size, require extra confirmation, or block.
+- Context cannot create trades or override hard risk rules.
+
+## Replay/observability
+- Every evaluation persists a `decision_snapshot` with veto reasons, score card, bucket decision, and order intent.
+- Post-trade journal and analytics remain read-only governance tools.
