@@ -240,3 +240,25 @@ export interface DashboardBundle {
   setups: SetupSliceResponse;
   recommendations: RecommendationRead[];
 }
+
+export interface SpyScalperStatusRead {
+  strategy_slug: string;
+  state: string;
+  pause_reason: string | null;
+  cooldown_until: string | null;
+  paper_only: boolean;
+  open_position_id: number | null;
+}
+
+export interface SpyScalperSignalRead {
+  id: number;
+  created_at: string | null;
+  trade_day: string;
+  outcome: string;
+  setup_family: string | null;
+  direction: string | null;
+  base_score: number | null;
+  ai_adjustment: number | null;
+  final_score: number | null;
+  reason: string | null;
+}

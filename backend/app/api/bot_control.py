@@ -15,6 +15,11 @@ from app.models.parameter_experiment_result import ParameterExperimentResult
 from app.models.recommendation_item import RecommendationItem
 from app.models.rejected_trade import RejectedTrade
 from app.models.setup_performance_snapshot import SetupPerformanceSnapshot
+from app.models.spy_scalper_candidate_event import SpyScalperCandidateEvent
+from app.models.spy_scalper_daily_summary import SpyScalperDailySummary
+from app.models.spy_scalper_fill import SpyScalperFill
+from app.models.spy_scalper_position import SpyScalperPosition
+from app.models.strategy_bot_state import StrategyBotState
 from app.models.trade_review import TradeReview
 from app.models.x_enrichment import XEnrichment
 from app.jobs.scheduler import start_background_jobs, stop_background_jobs
@@ -79,6 +84,11 @@ def paper_reset(db: Session = Depends(get_db)) -> BotStateRead:
     db.execute(delete(CandidateTrade))
     db.execute(delete(EventAnalysis))
     db.execute(delete(MarketSnapshot))
+    db.execute(delete(SpyScalperFill))
+    db.execute(delete(SpyScalperPosition))
+    db.execute(delete(SpyScalperCandidateEvent))
+    db.execute(delete(SpyScalperDailySummary))
+    db.execute(delete(StrategyBotState))
     db.commit()
     acc_repo = AccountRepository(db)
     from app.core.clock import utc_now

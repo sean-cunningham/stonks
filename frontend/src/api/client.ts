@@ -4,6 +4,8 @@ import type {
   DashboardBundle,
   RecommendationRead,
   SetupSliceResponse,
+  SpyScalperSignalRead,
+  SpyScalperStatusRead,
   StatusResponse,
   TradeReviewRead,
 } from "@/types/api";
@@ -66,4 +68,32 @@ export function postBotStop(): Promise<BotStateRead> {
 
 export function postPaperReset(): Promise<BotStateRead> {
   return fetchJson<BotStateRead>("/bot/paper-reset", { method: "POST" });
+}
+
+export function getSpyScalperStatus(): Promise<SpyScalperStatusRead> {
+  return fetchJson<SpyScalperStatusRead>("/strategies/spy-0dte-scalper/status");
+}
+
+export function postSpyScalperEnable(): Promise<SpyScalperStatusRead> {
+  return fetchJson<SpyScalperStatusRead>("/strategies/spy-0dte-scalper/enable", { method: "POST" });
+}
+
+export function postSpyScalperDisable(): Promise<SpyScalperStatusRead> {
+  return fetchJson<SpyScalperStatusRead>("/strategies/spy-0dte-scalper/disable", { method: "POST" });
+}
+
+export function getSpyScalperConfig(): Promise<Record<string, unknown>> {
+  return fetchJson<Record<string, unknown>>("/strategies/spy-0dte-scalper/config");
+}
+
+export function getSpyScalperMetricsDaily(): Promise<Record<string, unknown>> {
+  return fetchJson<Record<string, unknown>>("/strategies/spy-0dte-scalper/metrics/daily");
+}
+
+export function getSpyScalperSignalsRecent(): Promise<SpyScalperSignalRead[]> {
+  return fetchJson<SpyScalperSignalRead[]>("/strategies/spy-0dte-scalper/signals/recent");
+}
+
+export function getSpyScalperSummaryDaily(): Promise<Record<string, unknown>> {
+  return fetchJson<Record<string, unknown>>("/strategies/spy-0dte-scalper/summary/daily");
 }

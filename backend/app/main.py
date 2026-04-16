@@ -21,6 +21,7 @@ from app.api import (
     trades,
     x_enrichments,
 )
+from app.api.strategies import spy_0dte_scalper as spy_scalper_api
 from app.core.config import get_settings
 from app.core.logging import configure_logging
 
@@ -54,6 +55,7 @@ app.include_router(candidates.router)
 app.include_router(rejections.router)
 app.include_router(x_enrichments.router)
 app.include_router(bot_control.router)
+app.include_router(spy_scalper_api.router)
 
 
 @app.get("/")

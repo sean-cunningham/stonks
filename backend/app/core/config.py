@@ -223,6 +223,69 @@ class Settings(BaseSettings):
         validation_alias="PAPER_FEE_PER_CONTRACT",
     )
 
+    spy_scalper_paper_only: bool = Field(default=True, validation_alias="SPY_SCALPER_PAPER_ONLY")
+    spy_scalper_job_interval_seconds: int = Field(
+        default=60,
+        validation_alias="SPY_SCALPER_JOB_INTERVAL_SECONDS",
+    )
+    spy_scalper_recon_interval_seconds: int = Field(
+        default=60,
+        validation_alias="SPY_SCALPER_RECON_INTERVAL_SECONDS",
+    )
+    spy_scalper_reserve_cash: float = Field(default=1000.0, validation_alias="SPY_SCALPER_RESERVE_CASH")
+    spy_scalper_deployable_target: float = Field(
+        default=4000.0,
+        validation_alias="SPY_SCALPER_DEPLOYABLE_TARGET",
+    )
+    spy_scalper_max_trades_per_day: int = Field(default=15, validation_alias="SPY_SCALPER_MAX_TRADES_PER_DAY")
+    spy_scalper_max_consecutive_losses: int = Field(
+        default=3,
+        validation_alias="SPY_SCALPER_MAX_CONSECUTIVE_LOSSES",
+    )
+    spy_scalper_pre_ai_min_score: float = Field(default=60.0, validation_alias="SPY_SCALPER_PRE_AI_MIN_SCORE")
+    spy_scalper_ai_max_calls_per_day: int = Field(
+        default=30,
+        validation_alias="SPY_SCALPER_AI_MAX_CALLS_PER_DAY",
+    )
+    spy_scalper_contract_delta_min: float = Field(default=0.45, validation_alias="SPY_SCALPER_CONTRACT_DELTA_MIN")
+    spy_scalper_contract_delta_max: float = Field(default=0.60, validation_alias="SPY_SCALPER_CONTRACT_DELTA_MAX")
+    spy_scalper_premium_target_min: float = Field(
+        default=150.0,
+        validation_alias="SPY_SCALPER_PREMIUM_TARGET_MIN",
+    )
+    spy_scalper_premium_target_max: float = Field(
+        default=250.0,
+        validation_alias="SPY_SCALPER_PREMIUM_TARGET_MAX",
+    )
+    spy_scalper_premium_hard_max: float = Field(default=300.0, validation_alias="SPY_SCALPER_PREMIUM_HARD_MAX")
+    spy_scalper_max_hold_minutes: float = Field(default=8.0, validation_alias="SPY_SCALPER_MAX_HOLD_MINUTES")
+    spy_scalper_fast_fail_minutes: float = Field(default=3.0, validation_alias="SPY_SCALPER_FAST_FAIL_MINUTES")
+    spy_scalper_cooldown_after_exit_seconds: int = Field(
+        default=60,
+        validation_alias="SPY_SCALPER_COOLDOWN_AFTER_EXIT_SECONDS",
+    )
+    spy_scalper_cooldown_after_fast_loser_seconds: int = Field(
+        default=120,
+        validation_alias="SPY_SCALPER_COOLDOWN_AFTER_FAST_LOSER_SECONDS",
+    )
+    spy_scalper_daily_hard_stop_loss: float = Field(
+        default=500.0,
+        validation_alias="SPY_SCALPER_DAILY_HARD_STOP_LOSS",
+    )
+    spy_scalper_daily_soft_stop_loss: float = Field(
+        default=300.0,
+        validation_alias="SPY_SCALPER_DAILY_SOFT_STOP_LOSS",
+    )
+    spy_scalper_limit_offset_from_mid: float = Field(
+        default=0.02,
+        validation_alias="SPY_SCALPER_LIMIT_OFFSET_FROM_MID",
+    )
+    spy_scalper_cancel_window_seconds: int = Field(
+        default=45,
+        validation_alias="SPY_SCALPER_CANCEL_WINDOW_SECONDS",
+    )
+    spy_scalper_slippage_bps: float = Field(default=8.0, validation_alias="SPY_SCALPER_SLIPPAGE_BPS")
+
     def validate_mode_requirements(self) -> None:
         if self.app_mode == AppMode.MOCK:
             return

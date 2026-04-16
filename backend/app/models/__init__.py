@@ -14,6 +14,11 @@ from app.models.parameter_experiment_result import ParameterExperimentResult
 from app.models.recommendation_item import RecommendationItem
 from app.models.setup_performance_snapshot import SetupPerformanceSnapshot
 from app.models.trade_review import TradeReview
+from app.models.spy_scalper_candidate_event import SpyScalperCandidateEvent
+from app.models.spy_scalper_daily_summary import SpyScalperDailySummary
+from app.models.spy_scalper_fill import SpyScalperFill
+from app.models.spy_scalper_position import SpyScalperPosition
+from app.models.strategy_bot_state import StrategyBotState
 
 __all__ = [
     "Base",
@@ -32,4 +37,9 @@ __all__ = [
     "SetupPerformanceSnapshot",
     "RecommendationItem",
     "ParameterExperimentResult",
+    "StrategyBotState",
+    "SpyScalperCandidateEvent",
+    "SpyScalperPosition",
+    "SpyScalperFill",
+    "SpyScalperDailySummary",
 ]
