@@ -6,13 +6,15 @@ from typing import TYPE_CHECKING, Callable
 from apscheduler.schedulers.background import BackgroundScheduler
 from sqlalchemy.exc import OperationalError
 
-from app.core.config import Settings
+from app.core.config import Settings, get_settings
 from app.core.database import SessionLocal
+from app.jobs.dxlink_feed import ensure_dxlink_feed_started
 from app.jobs.event_loop import run_event_tick
 from app.jobs.market_loop import run_market_tick
 from app.jobs.reconciliation_loop import run_reconciliation_tick
 from app.jobs.spy_scalper_reconciliation_loop import run_spy_scalper_reconciliation_tick
 from app.jobs.token_refresh_loop import run_token_tick
+from app.services.strategy.candidate_generator import DEFAULT_WATCHLIST
 from app.strategies.spy_0dte_scalper.strategy import run_spy_scalper_tick
 from app.jobs.strategy_schedule import scheduled_jobs_for_settings
 from app.services.market_data.quote_cache import QuoteCache
@@ -47,7 +49,7 @@ def start_background_jobs(settings: Settings) -> None:
     def market_job() -> None:
         s = SessionLocal()
         try:
-            run_market_tick(s, settings, _quote_cache)
+            run_market_tick(s, settings, _quote_cache, _token_manager)
         except Exception:
             log.exception("market tick failed")
         finally:
@@ -124,6 +126,12 @@ def start_background_jobs(settings: Settings) -> None:
         )
     _scheduler.start()
     log.info("background scheduler started")
+    if settings.app_mode.value != "mock":
+        try:
+            run_token_tick(settings, _token_manager)
+        except Exception:
+            log.exception("initial tastytrade token refresh failed")
+        ensure_dxlink_feed_started(get_settings, _token_manager, _quote_cache, list(DEFAULT_WATCHLIST))
 
 
 def stop_background_jobs() -> None:

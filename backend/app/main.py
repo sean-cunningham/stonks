@@ -16,6 +16,7 @@ from app.api import (
     balances,
     bot_control,
     candidates,
+    debug_market,
     decisions,
     event_analyses,
     health,
@@ -77,6 +78,7 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
+app.include_router(debug_market.router)
 app.include_router(analytics.router)
 app.include_router(status.router)
 app.include_router(balances.router)

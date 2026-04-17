@@ -41,7 +41,11 @@ class TastytradeBrokerAdapter:
         raw = await self._rest.get_quote_streamer_tokens(token)
         data = raw.get("data") or raw
         token_str = data.get("token") or data.get("streamer-token")
-        dx_url = self._settings.tastytrade_dx_url
+        dx_url = (
+            data.get("dxlink-url")
+            or data.get("dxlink_url")
+            or self._settings.tastytrade_dx_url
+        )
         if not token_str:
             raise RuntimeError("Unexpected quote-token response shape")
         from app.core.clock import utc_now

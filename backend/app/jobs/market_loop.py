@@ -1,3 +1,4 @@
+import asyncio
 import logging
 import random
 
@@ -12,7 +13,11 @@ from app.repositories.bot_state_repository import BotStateRepository
 from app.repositories.candidate_repository import CandidateRepository
 from app.services.execution.paper_broker import PaperBroker
 from app.services.events.macro_lockout_service import is_event_lockout_active
+from app.services.market_data.market_snapshot_service import MarketSnapshotService
+from app.services.market_data.option_chain_service import OptionChainService
 from app.services.market_data.quote_cache import QuoteCache, QuoteTick
+from app.services.market_data.tastytrade_broker import TastytradeBrokerAdapter
+from app.services.market_data.token_manager import TokenManager
 from app.services.policy.approval_engine import ApprovalEngine
 from app.services.strategy.candidate_generator import DEFAULT_WATCHLIST, maybe_build_candidate
 
@@ -100,7 +105,49 @@ def _mock_snapshot_for_symbol(db: Session, symbol: str) -> MarketSnapshot:
     return snap
 
 
-def run_market_tick(db: Session, settings: Settings, quote_cache: QuoteCache) -> None:
+async def _persist_live_snapshots_async(
+    db: Session,
+    settings: Settings,
+    quote_cache: QuoteCache,
+    token_manager: TokenManager,
+) -> None:
+    broker = TastytradeBrokerAdapter(settings, token_manager)
+    ocs = OptionChainService(broker)
+    mss = MarketSnapshotService(db, quote_cache, ocs)
+    for sym in DEFAULT_WATCHLIST:
+        snap = await mss.build_and_persist(sym)
+        ex = snap.extra or {}
+        liq = ex.get("chain_liquidity") or {}
+        log.info(
+            "live snapshot persisted symbol=%s underlying=%s strike_count=%s quote_ts=%s chain_ts=%s",
+            sym,
+            snap.underlying_price,
+            liq.get("strike_count"),
+            ex.get("quote_ts_epoch"),
+            ex.get("chain_ts_epoch"),
+        )
+
+
+def run_live_market_snapshots(
+    db: Session,
+    settings: Settings,
+    quote_cache: QuoteCache,
+    token_manager: TokenManager,
+) -> None:
+    if settings.app_mode == AppMode.MOCK:
+        return
+    try:
+        asyncio.run(_persist_live_snapshots_async(db, settings, quote_cache, token_manager))
+    except Exception:
+        log.exception("live market snapshot tick failed")
+
+
+def run_market_tick(
+    db: Session,
+    settings: Settings,
+    quote_cache: QuoteCache,
+    token_manager: TokenManager | None = None,
+) -> None:
     bot = BotStateRepository(db).get()
     if bot.state != "running":
         return
@@ -157,3 +204,6 @@ def run_market_tick(db: Session, settings: Settings, quote_cache: QuoteCache) ->
         pb = PaperBroker(db, settings)
         pb.execute_approved_open(appr, bid=snap.bid, ask=snap.ask, mid=snap.underlying_price)
         return
+
+    if token_manager is not None:
+        run_live_market_snapshots(db, settings, quote_cache, token_manager)

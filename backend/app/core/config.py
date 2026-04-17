@@ -289,6 +289,11 @@ class Settings(BaseSettings):
     )
     spy_scalper_slippage_bps: float = Field(default=8.0, validation_alias="SPY_SCALPER_SLIPPAGE_BPS")
 
+    market_debug_endpoint_enabled: bool = Field(
+        default=False,
+        validation_alias="MARKET_DEBUG_ENDPOINT_ENABLED",
+    )
+
     def validate_mode_requirements(self) -> None:
         if self.app_mode == AppMode.MOCK:
             return
