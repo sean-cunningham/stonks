@@ -34,3 +34,13 @@ All strategy-scoped APIs live under `/strategies/{strategy_id}/...` with a share
 - Account cash is still a shared paper account model; per-strategy cash partitions are not introduced in this pass.
 - Scheduler remains globally instantiated with per-job gating; per-strategy scheduler instances are deferred.
 - Trade-review route remains Event Edge global under `/analytics/trades/{id}/review`; strategy aliasing is deferred.
+
+## Final consistency pass notes
+
+- Shared UI layers are strategy-agnostic: `UnifiedDashboard` resolves optional strategy-specific extras/header actions through `frontend/src/strategies/dashboardUiRegistry.tsx` instead of direct Event Edge imports.
+- Shared shell no longer passes strategy identity into extras components; strategy-specific mounting is owned by the registry entry, keeping the shell unaware of strategy-specific branching.
+- Frontend strategy representation is symmetric: both Event Edge and SPY have strategy UI adapter modules, and SPY currently provides explicit no-op adapters to preserve a consistent extension seam.
+- Strategy APIs remain namespaced under `/strategies/{strategy_id}/...`, and strategy config `PUT` now uses explicit dispatch by strategy id rather than implicit scalper-only coupling.
+- SPY strategy-scoped paper reset also clears `strategy_bot_states.scalper_state_json`, aligning persistent ledger reset with runtime-state reset.
+- Test coverage now checks strategy-scoped collection endpoints (`signals`, `trades`, `logs`, `position`, `status`) for both strategies and verifies enable/disable transitions do not bleed state across strategy repositories.
+- Intentional asymmetries remain by design (shared paper account and shared scheduler process with per-strategy running-state gating).

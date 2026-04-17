@@ -1,5 +1,6 @@
 import { useCallback, useState } from "react";
 import { getTradeReview, postStrategyPaperReset } from "@/api/client";
+import type { DashboardExtrasProps, DashboardHeaderActionsProps } from "@/strategies/dashboardUiRegistry";
 import { EventEdgeLegacyPanels } from "@/strategies/event-edge/EventEdgeLegacyPanels";
 import { STRATEGY_EVENT_EDGE_V1 } from "@/strategies/registry";
 import type {
@@ -7,21 +8,10 @@ import type {
   RecommendationRead,
   SetupSliceResponse,
   StatusResponse,
-  StrategyDashboardBundleRead,
   TradeReviewRead,
 } from "@/types/api";
 
-type EventEdgeDashboardExtrasProps = {
-  strategyId: string;
-  bundle: StrategyDashboardBundleRead | null;
-};
-
-type EventEdgeHeaderActionsProps = {
-  busy: string | null;
-  run: (label: string, fn: () => Promise<unknown>) => Promise<void>;
-};
-
-export function EventEdgeHeaderActions({ busy, run }: EventEdgeHeaderActionsProps) {
+export function EventEdgeHeaderActions({ busy, run }: DashboardHeaderActionsProps) {
   return (
     <button
       type="button"
@@ -34,7 +24,7 @@ export function EventEdgeHeaderActions({ busy, run }: EventEdgeHeaderActionsProp
   );
 }
 
-export function EventEdgeDashboardExtras({ strategyId, bundle }: EventEdgeDashboardExtrasProps) {
+export function EventEdgeDashboardExtras({ bundle }: DashboardExtrasProps) {
   const [reviewTradeId, setReviewTradeId] = useState<number | null>(null);
   const [reviewDetail, setReviewDetail] = useState<TradeReviewRead | null>(null);
   const [reviewLoading, setReviewLoading] = useState(false);
@@ -72,10 +62,6 @@ export function EventEdgeDashboardExtras({ strategyId, bundle }: EventEdgeDashbo
     setReviewTradeId(null);
     setReviewDetail(null);
   }, []);
-
-  if (strategyId !== STRATEGY_EVENT_EDGE_V1) {
-    return null;
-  }
 
   return (
     <>

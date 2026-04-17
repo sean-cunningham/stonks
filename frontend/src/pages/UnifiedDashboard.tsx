@@ -1,11 +1,10 @@
-import { useState, type ComponentType } from "react";
+import { useState } from "react";
 import { postStrategyDisable, postStrategyEnable } from "@/api/client";
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { useStrategyDashboard } from "@/hooks/useStrategyDashboard";
-import { STRATEGY_EVENT_EDGE_V1, STRATEGY_REGISTRY } from "@/strategies/registry";
+import { getDashboardStrategyUi } from "@/strategies/dashboardUiRegistry";
+import { STRATEGY_REGISTRY } from "@/strategies/registry";
 import type { StrategyId } from "@/strategies/registry";
-import { EventEdgeDashboardExtras, EventEdgeHeaderActions } from "@/strategies/event-edge/EventEdgeDashboardExtras";
-import type { StrategyDashboardBundleRead } from "@/types/api";
 
 const pollMs = Number(import.meta.env.VITE_REFRESH_INTERVAL_MS) || 5000;
 const appName = import.meta.env.VITE_APP_NAME || "Stonks";
@@ -26,19 +25,7 @@ export function UnifiedDashboard({ strategyId }: { strategyId: StrategyId }) {
     }
   }
 
-  type ExtrasProps = {
-    strategyId: StrategyId;
-    bundle: StrategyDashboardBundleRead | null;
-  };
-  type HeaderActionsProps = { busy: string | null; run: (label: string, fn: () => Promise<unknown>) => Promise<void> };
-  const extrasRegistry: Partial<Record<StrategyId, ComponentType<ExtrasProps>>> = {
-    [STRATEGY_EVENT_EDGE_V1]: EventEdgeDashboardExtras,
-  };
-  const headerActionsRegistry: Partial<Record<StrategyId, ComponentType<HeaderActionsProps>>> = {
-    [STRATEGY_EVENT_EDGE_V1]: EventEdgeHeaderActions,
-  };
-  const Extras = extrasRegistry[strategyId];
-  const HeaderActions = headerActionsRegistry[strategyId];
+  const { Extras, HeaderActions } = getDashboardStrategyUi(strategyId);
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -59,7 +46,7 @@ export function UnifiedDashboard({ strategyId }: { strategyId: StrategyId }) {
           ) : undefined
         }
       >
-        {Extras ? <Extras strategyId={strategyId} bundle={data} /> : null}
+        {Extras ? <Extras bundle={data} /> : null}
       </DashboardShell>
     </div>
   );

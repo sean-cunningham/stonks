@@ -31,8 +31,8 @@ from app.models.trade_review import TradeReview
 from app.models.x_enrichment import XEnrichment
 from app.repositories.account_repository import AccountRepository
 from app.repositories.bot_state_repository import BotStateRepository
-from app.repositories.strategy_bot_state_repository import SPY_SCALPER_SLUG, StrategyBotStateRepository
 from app.repositories.spy_scalper_repository import SpyScalperRepository
+from app.repositories.strategy_bot_state_repository import SPY_SCALPER_SLUG, StrategyBotStateRepository
 from app.schemas.strategy_dashboard import (
     StrategyConfigRead,
     StrategyDashboardBundle,
@@ -66,6 +66,10 @@ from app.strategies.registry import (
 from app.strategies.spy_0dte_scalper.metrics import build_daily_metrics
 
 router = APIRouter(prefix="/strategies", tags=["strategies"])
+
+_STRATEGY_CONFIG_PUT_DISPATCH = {
+    STRATEGY_SPY_0DTE_SCALPER: spy_scalper_put_config,
+}
 
 
 def _require_strategy(strategy_id: str) -> None:
@@ -148,7 +152,10 @@ def strategy_put_config(
     assert meta is not None
     if not meta.has_config_put:
         raise HTTPException(status_code=405, detail="config updates not supported for this strategy")
-    return spy_scalper_put_config(db, settings, body.overrides)
+    put_config_fn = _STRATEGY_CONFIG_PUT_DISPATCH.get(strategy_id)
+    if put_config_fn is not None:
+        return put_config_fn(db, settings, body.overrides)
+    raise HTTPException(status_code=405, detail="config updates not supported for this strategy")
 
 
 @router.post("/{strategy_id}/paper-reset", response_model=StrategyStatusBlock)
@@ -190,7 +197,9 @@ def strategy_paper_reset(strategy_id: str, db: Session = Depends(get_db)) -> Str
     db.execute(delete(SpyScalperCandidateEvent))
     db.execute(delete(SpyScalperDailySummary))
     db.commit()
-    StrategyBotStateRepository(db).set_state(SPY_SCALPER_SLUG, "stopped", pause_reason=None, cooldown_until=None)
+    strat_repo = StrategyBotStateRepository(db)
+    strat_repo.update_scalper_state_json(SPY_SCALPER_SLUG, None)
+    strat_repo.set_state(SPY_SCALPER_SLUG, "stopped", pause_reason=None, cooldown_until=None)
     return spy_scalper_disable(db, settings)
 
 
