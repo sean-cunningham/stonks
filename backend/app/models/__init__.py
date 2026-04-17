@@ -13,6 +13,7 @@ from app.models.x_enrichment import XEnrichment
 from app.models.parameter_experiment_result import ParameterExperimentResult
 from app.models.recommendation_item import RecommendationItem
 from app.models.setup_performance_snapshot import SetupPerformanceSnapshot
+from app.models.tastytrade_credential import TastytradeCredential
 from app.models.trade_review import TradeReview
 from app.models.spy_scalper_candidate_event import SpyScalperCandidateEvent
 from app.models.spy_scalper_daily_summary import SpyScalperDailySummary
@@ -37,9 +38,13 @@ __all__ = [
     "SetupPerformanceSnapshot",
     "RecommendationItem",
     "ParameterExperimentResult",
+<<<<<<< HEAD
     "StrategyBotState",
     "SpyScalperCandidateEvent",
     "SpyScalperPosition",
     "SpyScalperFill",
     "SpyScalperDailySummary",
+=======
+    "TastytradeCredential",
+>>>>>>> connection
 ]
