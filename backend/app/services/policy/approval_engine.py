@@ -1,3 +1,5 @@
+import logging
+
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -15,6 +17,8 @@ from app.repositories.trade_repository import TradeRepository
 from app.services.policy.blackout_rules import BlackoutConfig, in_no_new_trades_window
 from app.services.policy.v1_decision_engine import V1DecisionEngine
 
+log = logging.getLogger(__name__)
+
 
 class ApprovalEngine:
     def __init__(self, db: Session, settings: Settings) -> None:
@@ -26,6 +30,7 @@ class ApprovalEngine:
 
     def try_approve(self, candidate_id: int) -> tuple[str, int | None]:
         """Returns ('approved', trade_id) or ('rejected', rejection_id) or ('recommend_only', recommendation_id)."""
+        log.info("approval try_approve start candidate_id=%s", candidate_id)
         cand = self._db.get(CandidateTrade, candidate_id)
         if not cand:
             r = self._rej.create(reasons=["candidate not found"], rule_codes=["NOT_FOUND"])
@@ -101,6 +106,7 @@ class ApprovalEngine:
                 order_instruction_json=None,
                 explanation=dec.explanation,
             )
+            log.info("approval rejected candidate_id=%s rejection_id=%s", candidate_id, r.id)
             return "rejected", r.id
 
         if dec.bucket == DecisionBucket.RECOMMEND_ONLY:
@@ -132,6 +138,7 @@ class ApprovalEngine:
                 },
                 explanation=dec.explanation,
             )
+            log.info("approval recommend_only candidate_id=%s recommendation_id=%s", candidate_id, rec.id)
             return "recommend_only", rec.id
 
         at = self._tr.create_approved(
@@ -170,4 +177,5 @@ class ApprovalEngine:
             },
             explanation=dec.explanation,
         )
+        log.info("approval approved candidate_id=%s approved_trade_id=%s", candidate_id, at.id)
         return "approved", at.id

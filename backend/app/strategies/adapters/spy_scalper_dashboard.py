@@ -6,12 +6,13 @@ from sqlalchemy.orm import Session
 
 from app.core.clock import utc_now
 from app.core.config import Settings
-from app.jobs.scheduler import ensure_background_jobs_started, maybe_stop_background_jobs
+from app.jobs.scheduler import ensure_background_jobs_started, get_quote_cache, maybe_stop_background_jobs
 from app.repositories.spy_scalper_repository import SpyScalperRepository
 from app.repositories.strategy_bot_state_repository import SPY_SCALPER_SLUG, StrategyBotStateRepository
 from app.schemas.strategy_dashboard import StrategyDashboardBundle, StrategyStatusBlock
 from app.strategies.registry import STRATEGY_SPY_0DTE_SCALPER, get_strategy_meta
 from app.strategies.spy_0dte_scalper.config import effective_config
+from app.strategies.spy_0dte_scalper.live_readiness import evaluate_spy_live_paper_readiness
 from app.strategies.spy_0dte_scalper.metrics import build_daily_metrics
 
 
@@ -135,6 +136,7 @@ def spy_scalper_build_dashboard(db: Session, settings: Settings) -> StrategyDash
             }
         )
 
+    runtime_health = evaluate_spy_live_paper_readiness(db, settings, get_quote_cache()).as_extension_dict()
     return StrategyDashboardBundle(
         status=status,
         daily={
@@ -150,5 +152,8 @@ def spy_scalper_build_dashboard(db: Session, settings: Settings) -> StrategyDash
         metrics=metrics,
         logs=[],
         config=spy_scalper_get_config(db, settings),
-        extensions={"summary": {"trade_day": trade_day, "summary": metrics}},
+        extensions={
+            "summary": {"trade_day": trade_day, "summary": metrics},
+            "runtime_health": runtime_health,
+        },
     )

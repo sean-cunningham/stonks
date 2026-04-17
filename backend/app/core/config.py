@@ -293,6 +293,10 @@ class Settings(BaseSettings):
         default=False,
         validation_alias="MARKET_DEBUG_ENDPOINT_ENABLED",
     )
+    live_candidate_pipeline_enabled: bool = Field(
+        default=False,
+        validation_alias="LIVE_CANDIDATE_PIPELINE_ENABLED",
+    )
 
     def validate_mode_requirements(self) -> None:
         if self.app_mode == AppMode.MOCK:

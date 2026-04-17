@@ -79,15 +79,8 @@ app.add_middleware(
 )
 
 app.include_router(health.router)
-<<<<<<< HEAD
-<<<<<<< HEAD
 app.include_router(debug_market.router)
-=======
 app.include_router(auth_tastytrade.router)
->>>>>>> connection
-=======
-app.include_router(auth_tastytrade.router)
->>>>>>> connection
 app.include_router(analytics.router)
 app.include_router(status.router)
 app.include_router(balances.router)

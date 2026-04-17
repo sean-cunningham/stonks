@@ -3,6 +3,7 @@ from __future__ import annotations
 from sqlalchemy import func, select
 
 from app.core.config import get_settings
+from app.core.enums import AppMode
 from app.models.active_position import ActivePosition
 from app.models.spy_scalper_candidate_event import SpyScalperCandidateEvent
 from app.repositories.strategy_bot_state_repository import SPY_SCALPER_SLUG, StrategyBotStateRepository
@@ -135,6 +136,26 @@ def test_ai_filter_handles_empty_openai_output(monkeypatch):
     assert adj == 0.0
     assert verdict is None
     assert err == "empty_ai_output"
+
+
+def test_spy_scalper_blocks_without_live_quote_in_market_data_mode(db_session, monkeypatch):
+    monkeypatch.setenv("APP_MODE", "market_data")
+    monkeypatch.setenv("TASTYTRADE_REFRESH_TOKEN", "test-refresh")
+    monkeypatch.setenv("TASTYTRADE_ACCOUNT_NUMBER", "123456")
+    monkeypatch.setenv("TASTYTRADE_OAUTH_CLIENT_ID", "id")
+    monkeypatch.setenv("TASTYTRADE_OAUTH_CLIENT_SECRET", "secret")
+    get_settings.cache_clear()
+    s = get_settings()
+    assert s.app_mode == AppMode.MARKET_DATA
+    qc = QuoteCache()
+    strat = StrategyBotStateRepository(db_session)
+    strat.set_state(SPY_SCALPER_SLUG, "running")
+    run_spy_scalper_tick(db_session, s, qc)
+    blocked = db_session.scalar(
+        select(SpyScalperCandidateEvent).where(SpyScalperCandidateEvent.outcome == "blocked_missing_live_market"),
+    )
+    assert blocked is not None
+    get_settings.cache_clear()
 
 
 def test_scalper_tick_does_not_touch_strategy1_positions(db_session, monkeypatch):

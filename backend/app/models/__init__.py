@@ -38,17 +38,10 @@ __all__ = [
     "SetupPerformanceSnapshot",
     "RecommendationItem",
     "ParameterExperimentResult",
-<<<<<<< HEAD
-<<<<<<< HEAD
+    "TastytradeCredential",
     "StrategyBotState",
     "SpyScalperCandidateEvent",
     "SpyScalperPosition",
     "SpyScalperFill",
     "SpyScalperDailySummary",
-=======
-    "TastytradeCredential",
->>>>>>> connection
-=======
-    "TastytradeCredential",
->>>>>>> connection
 ]

@@ -263,6 +263,14 @@ export interface StrategyDailySummaryRead {
   details: Record<string, unknown>;
 }
 
+/** SPY scalper / shared runtime health from `bundle.extensions.runtime_health` */
+export interface StrategyRuntimeHealth {
+  safe_to_trade: boolean;
+  block_reason: string | null;
+  last_spy_quote_age_sec: number | null;
+  last_chain_snapshot_status: string;
+}
+
 /** Normalized dashboard bundle from GET /strategies/{id}/dashboard */
 export interface StrategyDashboardBundleRead {
   status: {

@@ -1,6 +1,8 @@
 import asyncio
 import logging
 import random
+import time
+from math import isfinite
 
 from sqlalchemy.orm import Session
 
@@ -22,6 +24,100 @@ from app.services.policy.approval_engine import ApprovalEngine
 from app.services.strategy.candidate_generator import DEFAULT_WATCHLIST, maybe_build_candidate
 
 log = logging.getLogger(__name__)
+
+_LIVE_SNAPSHOT_MAX_AGE_SEC = 600.0
+
+
+def _has_option_premium_for_pipeline(extra: dict) -> bool:
+    oc = extra.get("option_contract") or {}
+    if not isinstance(oc, dict):
+        return False
+    for k in ("spread_mid", "mid"):
+        v = oc.get(k)
+        if v is None:
+            continue
+        try:
+            f = float(v)
+            if isfinite(f) and f > 0:
+                return True
+        except (TypeError, ValueError):
+            continue
+    return False
+
+
+def _snapshot_freshness_ok(extra: dict, *, max_age_sec: float = _LIVE_SNAPSHOT_MAX_AGE_SEC) -> bool:
+    now = time.time()
+    for key in ("quote_ts_epoch", "chain_ts_epoch"):
+        ts = extra.get(key)
+        if ts is None:
+            return False
+        try:
+            if now - float(ts) > max_age_sec:
+                return False
+        except (TypeError, ValueError):
+            return False
+    return True
+
+
+def _try_live_candidate_pipeline(db: Session, settings: Settings, snap: MarketSnapshot) -> None:
+    extra = snap.extra or {}
+    if not _has_option_premium_for_pipeline(extra):
+        log.info("live candidate pipeline skip symbol=%s reason=no_option_contract", snap.symbol)
+        return
+    if not _snapshot_freshness_ok(extra):
+        log.info("live candidate pipeline skip symbol=%s reason=stale_snapshot_fields", snap.symbol)
+        return
+    spec, reason = maybe_build_candidate(
+        snap,
+        settings=settings,
+        event_type="headline",
+        event_id=f"live-tick-{snap.symbol}",
+        direction_bias="bullish",
+        materiality_score=70,
+        confidence_score=65,
+        event_mixed=False,
+        anticipatory_allowed=False,
+    )
+    if not spec:
+        log.info("live candidate pipeline symbol=%s no_candidate reason=%s", snap.symbol, reason)
+        return
+    cr = CandidateRepository(db)
+    cand = cr.create(
+        symbol=spec.symbol,
+        strategy=spec.strategy.value,
+        candidate_kind=spec.candidate_kind,
+        setup_type=spec.setup_type,
+        setup_score=spec.setup_score,
+        reason_codes=spec.reason_codes,
+        confirmation_state=spec.confirmation_state,
+        event_id=spec.event_id,
+        direction_bias=spec.direction_bias,
+        legs=spec.legs,
+        market_snapshot_id=snap.id,
+        is_event_driven=spec.is_event_driven,
+        metadata={"option_contract": (snap.extra or {}).get("option_contract", {})},
+        notes=spec.notes,
+    )
+    eng = ApprovalEngine(db, settings)
+    outcome, tid = eng.try_approve(cand.id)
+    if outcome == "recommend_only":
+        log.info("live candidate pipeline recommend-only id=%s symbol=%s", tid, snap.symbol)
+        return
+    if outcome != "approved" or not tid:
+        log.info("live candidate pipeline approval not approved outcome=%s id=%s symbol=%s", outcome, tid, snap.symbol)
+        return
+    appr = db.get(ApprovedTrade, tid)
+    if not appr:
+        return
+    pb = PaperBroker(db, settings)
+    pb.execute_approved_open(
+        appr,
+        bid=snap.bid,
+        ask=snap.ask,
+        mid=snap.underlying_price,
+        reference_underlying=snap.underlying_price,
+    )
+    log.info("live candidate pipeline filled approved id=%s symbol=%s", tid, snap.symbol)
 
 
 def _mock_snapshot_for_symbol(db: Session, symbol: str) -> MarketSnapshot:
@@ -114,18 +210,32 @@ async def _persist_live_snapshots_async(
     broker = TastytradeBrokerAdapter(settings, token_manager)
     ocs = OptionChainService(broker)
     mss = MarketSnapshotService(db, quote_cache, ocs)
+    pipeline_note = (
+        "live_candidate_pipeline_enabled"
+        if settings.live_candidate_pipeline_enabled
+        else "live_candidate_pipeline_disabled_default"
+    )
     for sym in DEFAULT_WATCHLIST:
         snap = await mss.build_and_persist(sym)
         ex = snap.extra or {}
         liq = ex.get("chain_liquidity") or {}
+        tick = quote_cache.get(sym)
+        quote_present = bool(tick and ((tick.bid and tick.ask) or tick.last))
+        strike_count = liq.get("strike_count")
         log.info(
-            "live snapshot persisted symbol=%s underlying=%s strike_count=%s quote_ts=%s chain_ts=%s",
+            "live market tick symbol=%s quote_present=%s chain_strike_count=%s "
+            "quote_ts_epoch=%s chain_ts_epoch=%s api_degraded=%s option_contract_ok=%s downstream=%s",
             sym,
-            snap.underlying_price,
-            liq.get("strike_count"),
+            quote_present,
+            strike_count,
             ex.get("quote_ts_epoch"),
             ex.get("chain_ts_epoch"),
+            ex.get("api_degraded"),
+            _has_option_premium_for_pipeline(ex),
+            pipeline_note,
         )
+        if settings.live_candidate_pipeline_enabled:
+            _try_live_candidate_pipeline(db, settings, snap)
 
 
 def run_live_market_snapshots(
@@ -150,8 +260,10 @@ def run_market_tick(
 ) -> None:
     bot = BotStateRepository(db).get()
     if bot.state != "running":
+        log.info("market_tick skipped: bot state=%s (Strategy 1 live/mock pipeline inactive)", bot.state)
         return
     if settings.app_mode == AppMode.MOCK:
+        log.info("market_tick branch=mock")
         sym = random.choice(DEFAULT_WATCHLIST)
         mid = 200 + random.random() * 50
         bid, ask = mid - 0.05, mid + 0.05
@@ -202,8 +314,25 @@ def run_market_tick(
         if not appr:
             return
         pb = PaperBroker(db, settings)
-        pb.execute_approved_open(appr, bid=snap.bid, ask=snap.ask, mid=snap.underlying_price)
+        pb.execute_approved_open(
+            appr,
+            bid=snap.bid,
+            ask=snap.ask,
+            mid=snap.underlying_price,
+            reference_underlying=snap.underlying_price,
+        )
         return
 
-    if token_manager is not None:
-        run_live_market_snapshots(db, settings, quote_cache, token_manager)
+    log.info("market_tick branch=live app_mode=%s", settings.app_mode.value)
+    if token_manager is None:
+        log.info(
+            "live snapshot tick skipped: no token_manager (snapshots only when scheduler wires broker); "
+            "Strategy 1 candidate/approval/paper path did not run this tick",
+        )
+        return
+    run_live_market_snapshots(db, settings, quote_cache, token_manager)
+    if not settings.live_candidate_pipeline_enabled:
+        log.info(
+            "Strategy 1 post-snapshot: candidate/approval/paper pipeline not run "
+            "(LIVE_CANDIDATE_PIPELINE_ENABLED=false); snapshots were persisted if snapshot job succeeded",
+        )
