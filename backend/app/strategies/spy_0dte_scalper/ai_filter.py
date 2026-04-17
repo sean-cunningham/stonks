@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import Settings
 from app.services.ai.openai_client import _extract_output_text
+from app.services.ai.provider_runtime import resolve_v1_provider
 from app.strategies.spy_0dte_scalper.config import ScalperEffectiveConfig
 from app.strategies.spy_0dte_scalper.setup_detector import DetectedSetup
 
@@ -85,6 +86,16 @@ def run_ai_filter_sync(
     *,
     ai_calls_today: int,
 ) -> tuple[float, AiScalperVerdict | None, str | None]:
+    try:
+        provider_meta = resolve_v1_provider(
+            settings,
+            strategy_id="spy-0dte-scalper",
+            capability="setup_scoring_support",
+            escalation=False,
+        )
+    except RuntimeError as e:
+        return 0.0, None, str(e)
+
     use_mock = settings.use_mock_openai or not settings.openai_enable_real_calls
     if ai_calls_today >= cfg.ai_max_calls_per_day:
         return 0.0, None, "ai_daily_cap"
@@ -109,7 +120,7 @@ def run_ai_filter_sync(
         }
     )
     body: dict[str, Any] = {
-        "model": settings.openai_triage_model,
+        "model": provider_meta.model,
         "input": prompt,
         "text": {"format": _response_format()},
     }
@@ -131,7 +142,18 @@ def run_ai_filter_sync(
         if verdict.pass_take.upper() == "PASS":
             adj = min(adj, -5.0)
         adj = _clamp_adjustment(adj)
+        log.info(
+            "scalper ai call strategy=%s provider=%s model=%s outcome=success",
+            provider_meta.strategy_id,
+            provider_meta.provider,
+            provider_meta.model,
+        )
         return adj, verdict, None
     except Exception:
-        log.exception("spy scalper ai filter failed")
+        log.exception(
+            "spy scalper ai filter failed strategy=%s provider=%s model=%s outcome=error",
+            provider_meta.strategy_id,
+            provider_meta.provider,
+            provider_meta.model,
+        )
         return 0.0, None, "ai_error"

@@ -122,6 +122,9 @@ class Settings(BaseSettings):
         validation_alias="OPENAI_ENABLE_REAL_CALLS",
     )
     use_mock_openai: bool = Field(default=True, validation_alias="USE_MOCK_OPENAI")
+    ai_provider: str = Field(default="openai", validation_alias="AI_PROVIDER")
+    openai_enabled: bool = Field(default=True, validation_alias="OPENAI_ENABLED")
+    xai_enabled: bool = Field(default=False, validation_alias="XAI_ENABLED")
 
     xai_api_key: str | None = Field(default=None, validation_alias="XAI_API_KEY")
     xai_api_base_url: str = Field(

@@ -9,6 +9,7 @@ from app.repositories.x_enrichment_repository import XEnrichmentRepository
 from app.services.ai.mock_openai_client import MockOpenAIClient
 from app.services.ai.mock_xai_client import MockXaiClient
 from app.services.ai.openai_client import OpenAIResponsesClient
+from app.services.ai.provider_runtime import resolve_v1_provider
 from app.services.ai.xai_client import XaiEnrichmentClient
 from app.services.events.normalized_packet import NormalizedEventPacket
 
@@ -28,6 +29,15 @@ class EventAnalysisService:
     ) -> tuple[object | None, str | None]:
         use_mock = self._settings.use_mock_openai or not self._settings.openai_enable_real_calls
         escalation = packet.event_kind in ("macro_announcement", "sec_filing")
+        try:
+            resolve_v1_provider(
+                self._settings,
+                strategy_id="event-edge-v1",
+                capability="context_classification",
+                escalation=escalation,
+            )
+        except RuntimeError as e:
+            return None, str(e)
         try:
             if use_mock:
                 client: MockOpenAIClient | OpenAIResponsesClient = MockOpenAIClient()
@@ -52,11 +62,21 @@ class EventAnalysisService:
             setup_score=float(judgment.materiality_score),
             reason_codes=[packet.event_kind, "openai_primary"],
         )
+        log.info(
+            "ai analysis persisted strategy=%s provider=%s model=%s escalation=%s",
+            "event-edge-v1",
+            self._settings.ai_provider,
+            self._settings.openai_escalation_model if escalation else self._settings.openai_triage_model,
+            escalation,
+        )
         await self._maybe_enrich_with_xai(packet, row.id, judgment.materiality_score)
         return row, None
 
     async def _maybe_enrich_with_xai(self, packet: NormalizedEventPacket, event_analysis_id: int, materiality_score: int) -> None:
+        if not self._settings.xai_enabled:
+            return
         if self._settings.v1_disable_xai_runtime:
+            log.warning("blocked xai enrichment invocation in v1 runtime")
             return
         if not self._settings.xai_enable_x_search_enrichment:
             return

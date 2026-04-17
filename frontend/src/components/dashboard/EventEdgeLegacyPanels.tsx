@@ -11,7 +11,6 @@ import type {
   RecommendationRead,
   SetupSliceResponse,
   StatusResponse,
-  XEnrichmentRead,
 } from "@/types/api";
 
 export type EventEdgeLegacyPanelsProps = {
@@ -186,12 +185,6 @@ export function EventEdgeLegacyPanels({
         <CandidatesPanel candidates={status.recent_candidates} />
         <RejectionsPanel rejections={status.recent_rejections} />
         <EventAnalysesPanel analyses={status.recent_event_analyses} />
-        <details className="rounded border border-slate-800 bg-slate-950/30 p-2">
-          <summary className="cursor-pointer text-sm text-slate-300">Optional research data: x-enrichment</summary>
-          <div className="mt-2">
-            <XEnrichPanel items={status.recent_x_enrichments} />
-          </div>
-        </details>
         <FillsPanel fills={status.recent_fills} />
         <ApprovedTradesPanel trades={status.recent_trades} onOpenReview={onOpenReview} />
         <DecisionsPanel decisions={status.recent_decisions} />
@@ -281,27 +274,6 @@ function EventAnalysesPanel({ analyses }: { analyses: EventAnalysisRead[] }) {
                 {e.symbol} · {e.event_type} · {e.event_source_tier}
               </div>
               <div className="text-slate-300">{e.narrative_summary}</div>
-            </li>
-          ))}
-        </ul>
-      )}
-    </SectionCard>
-  );
-}
-
-function XEnrichPanel({ items }: { items: XEnrichmentRead[] }) {
-  return (
-    <SectionCard title="Optional x-enrichment (secondary)">
-      {items.length === 0 ? (
-        <p className="text-sm text-slate-500">No sidecar enrichments.</p>
-      ) : (
-        <ul className="max-h-48 space-y-2 overflow-y-auto text-sm">
-          {items.map((x) => (
-            <li key={x.id} className="rounded border border-indigo-900/40 bg-indigo-950/20 p-2">
-              <div className="text-indigo-200">
-                {x.symbol} · {x.model_name} · sentiment {x.sentiment_bias}
-              </div>
-              <div className="text-xs text-slate-400">{x.summary}</div>
             </li>
           ))}
         </ul>

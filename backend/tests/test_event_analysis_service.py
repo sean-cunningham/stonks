@@ -40,3 +40,16 @@ async def test_mock_persist(db_sess):
     assert err is None
     assert row is not None
     assert row.symbol == pkt.symbol.upper()
+
+
+@pytest.mark.asyncio
+async def test_provider_guard_blocks_non_openai(db_sess):
+    s = Settings(use_mock_openai=True, openai_enable_real_calls=False, app_mode=AppMode.MOCK)
+    s.ai_provider = "xai"
+    s.openai_enabled = True
+    svc = EventAnalysisService(db_sess, s)
+    pkt = MockEventProvider().poll()[0]
+    row, err = await svc.analyze_and_persist(pkt)
+    assert row is None
+    assert err is not None
+    assert "disabled for v1 runtime" in err
