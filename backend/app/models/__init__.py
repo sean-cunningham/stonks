@@ -39,11 +39,15 @@ __all__ = [
     "RecommendationItem",
     "ParameterExperimentResult",
 <<<<<<< HEAD
+<<<<<<< HEAD
     "StrategyBotState",
     "SpyScalperCandidateEvent",
     "SpyScalperPosition",
     "SpyScalperFill",
     "SpyScalperDailySummary",
+=======
+    "TastytradeCredential",
+>>>>>>> connection
 =======
     "TastytradeCredential",
 >>>>>>> connection
