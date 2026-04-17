@@ -18,7 +18,7 @@ from app.strategies.spy_0dte_scalper.features import compute_features, synthesiz
 from app.strategies.spy_0dte_scalper.position_manager import open_paper_position
 from app.strategies.spy_0dte_scalper.risk_manager import evaluate_new_entry
 from app.strategies.spy_0dte_scalper.scorer import score_setup
-from app.strategies.spy_0dte_scalper.live_readiness import evaluate_spy_live_paper_readiness, spy_underlying_mid
+from app.strategies.spy_0dte_scalper.live_readiness import SPY_SYNTHETIC_BLOCK_REASON, spy_underlying_mid
 from app.strategies.spy_0dte_scalper.setup_detector import detect_setups
 from app.strategies.spy_0dte_scalper.state import ScalperRuntimeState
 
@@ -50,29 +50,18 @@ def run_tick(db: Session, settings: Settings, quote_cache: QuoteCache) -> None:
     daily_net = float(summary.net_pnl) if summary else 0.0
 
     if settings.app_mode != AppMode.MOCK:
-        health = evaluate_spy_live_paper_readiness(db, settings, quote_cache)
-        if not health.safe_to_trade:
-            spy_repo.log_candidate(
-                trade_day=trade_day,
-                outcome="blocked_missing_live_market",
-                reason=health.block_reason or "blocked",
-                features_json={"runtime_health": health.as_extension_dict()},
-            )
-            log.info(
-                "spy scalper tick blocked: reason=%s quote_age_sec=%s chain_status=%s",
-                health.block_reason,
-                health.last_spy_quote_age_sec,
-                health.last_chain_snapshot_status,
-            )
-            return
+        spy_repo.log_candidate(
+            trade_day=trade_day,
+            outcome="blocked_synthetic_execution",
+            reason=SPY_SYNTHETIC_BLOCK_REASON,
+            features_json={"app_mode": settings.app_mode.value},
+        )
+        log.info("spy scalper tick skipped: %s", SPY_SYNTHETIC_BLOCK_REASON)
+        return
 
     mid = spy_underlying_mid(quote_cache)
     if mid is None:
-        if settings.app_mode == AppMode.MOCK:
-            mid = 500.0
-        else:
-            log.warning("spy scalper unreachable: no SPY mid after live readiness gate")
-            return
+        mid = 500.0
     bars = synthesize_bars(mid, n=90, seed=now.hour * 60 + now.minute)
     features = compute_features(mid, bars)
 

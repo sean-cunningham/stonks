@@ -263,12 +263,19 @@ export interface StrategyDailySummaryRead {
   details: Record<string, unknown>;
 }
 
-/** SPY scalper / shared runtime health from `bundle.extensions.runtime_health` */
+/** Shared runtime / connectivity block from `bundle.extensions.runtime_health` */
 export interface StrategyRuntimeHealth {
   safe_to_trade: boolean;
   block_reason: string | null;
   last_spy_quote_age_sec: number | null;
   last_chain_snapshot_status: string;
+  app_mode?: string;
+  api_degraded?: boolean | null;
+  chain_snapshot_age_sec?: number | null;
+  last_quote_tick_iso?: string | null;
+  live_candidate_pipeline_enabled?: boolean;
+  spy_scalper_synthetic_blocked?: boolean | null;
+  spy_scalper_synthetic_block_reason?: string | null;
 }
 
 /** Normalized dashboard bundle from GET /strategies/{id}/dashboard */
@@ -282,6 +289,9 @@ export interface StrategyDashboardBundleRead {
     paper_only: boolean;
     app_mode: string;
     open_position_id: number | null;
+    live_candidate_pipeline_enabled?: boolean | null;
+    spy_scalper_synthetic_blocked?: boolean | null;
+    spy_scalper_synthetic_block_reason?: string | null;
   };
   daily: Record<string, unknown>;
   balances: Record<string, unknown> | null;

@@ -16,6 +16,11 @@ class StrategyStatusBlock(BaseModel):
     paper_only: bool = True
     app_mode: str = "mock"
     open_position_id: int | None = None
+    # Event Edge (Strategy 1): whether post-snapshot candidate/approval/paper pipeline runs on live ticks.
+    live_candidate_pipeline_enabled: bool | None = None
+    # SPY 0DTE scalper (Strategy 2): synthetic scanner disabled outside APP_MODE=mock.
+    spy_scalper_synthetic_blocked: bool | None = None
+    spy_scalper_synthetic_block_reason: str | None = None
 
 
 class StrategyListItem(BaseModel):

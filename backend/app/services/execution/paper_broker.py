@@ -37,7 +37,6 @@ def _option_nbbo_for_fill(
     option_contract: dict[str, Any],
     *,
     strategy: str,
-    reference_underlying: float | None,
 ) -> tuple[float, float, float] | None:
     """Derive option bid/ask/mid for fill pricing from metadata only (never underlying NBBO)."""
     if strategy == "debit_spread":
@@ -88,9 +87,6 @@ class PaperBroker:
         self,
         approved: ApprovedTrade,
         *,
-        bid: float | None,
-        ask: float | None,
-        mid: float | None,
         reference_underlying: float | None = None,
     ) -> int | None:
         cand = self._db.get(CandidateTrade, approved.candidate_trade_id)
@@ -102,7 +98,7 @@ class PaperBroker:
         if not v.ok:
             return None
 
-        nbbo = _option_nbbo_for_fill(option_contract, strategy=cand.strategy, reference_underlying=reference_underlying)
+        nbbo = _option_nbbo_for_fill(option_contract, strategy=cand.strategy)
         if nbbo is None:
             log.warning("paper open rejected: missing option_contract premium fields for candidate id=%s", cand.id)
             return None

@@ -12,12 +12,30 @@ from app.repositories.strategy_bot_state_repository import SPY_SCALPER_SLUG, Str
 from app.schemas.strategy_dashboard import StrategyDashboardBundle, StrategyStatusBlock
 from app.strategies.registry import STRATEGY_SPY_0DTE_SCALPER, get_strategy_meta
 from app.strategies.spy_0dte_scalper.config import effective_config
-from app.strategies.spy_0dte_scalper.live_readiness import evaluate_spy_live_paper_readiness
+from app.core.enums import AppMode
+from app.strategies.spy_0dte_scalper.live_readiness import (
+    SPY_SYNTHETIC_BLOCK_REASON,
+    evaluate_spy_live_paper_readiness,
+)
 from app.strategies.spy_0dte_scalper.metrics import build_daily_metrics
 
 
 def _iso(dt) -> str | None:
     return dt.isoformat() if dt else None
+
+
+def _row_to_log_dict(r) -> dict[str, Any]:
+    return {
+        "id": r.id,
+        "created_at": _iso(r.created_at),
+        "trade_day": r.trade_day,
+        "outcome": r.outcome,
+        "setup_family": r.setup_family,
+        "direction": r.direction,
+        "base_score": r.base_score,
+        "final_score": r.final_score,
+        "reason": r.reason,
+    }
 
 
 def _row_to_signal_dict(r) -> dict[str, Any]:
@@ -43,6 +61,7 @@ def spy_scalper_status_block(db: Session, settings: Settings) -> StrategyStatusB
     open_p = spy_repo.get_open_position()
     meta = get_strategy_meta(STRATEGY_SPY_0DTE_SCALPER)
     assert meta is not None
+    synth_blocked = settings.app_mode != AppMode.MOCK
     return StrategyStatusBlock(
         strategy_id=STRATEGY_SPY_0DTE_SCALPER,
         display_name=meta.display_name,
@@ -52,6 +71,9 @@ def spy_scalper_status_block(db: Session, settings: Settings) -> StrategyStatusB
         paper_only=cfg.paper_only,
         app_mode=str(settings.app_mode.value),
         open_position_id=open_p.id if open_p else None,
+        live_candidate_pipeline_enabled=None,
+        spy_scalper_synthetic_blocked=synth_blocked,
+        spy_scalper_synthetic_block_reason=SPY_SYNTHETIC_BLOCK_REASON if synth_blocked else None,
     )
 
 
@@ -73,9 +95,10 @@ def spy_scalper_get_config(db: Session, settings: Settings) -> dict[str, Any]:
     strat = StrategyBotStateRepository(db)
     row = strat.get_or_create(SPY_SCALPER_SLUG)
     eff = effective_config(settings, row.config_json)
+    eff = {**eff.__dict__, "live_candidate_pipeline_enabled": settings.live_candidate_pipeline_enabled}
     return {
         "read_only": False,
-        "effective": eff.__dict__,
+        "effective": eff,
         "overrides": row.config_json or {},
         "notes": None,
     }
@@ -85,8 +108,9 @@ def spy_scalper_put_config(db: Session, settings: Settings, overrides: dict[str,
     strat = StrategyBotStateRepository(db)
     strat.update_config_json(SPY_SCALPER_SLUG, overrides or {})
     row = strat.get_or_create(SPY_SCALPER_SLUG)
-    eff = effective_config(settings, row.config_json)
-    return {"read_only": False, "effective": eff.__dict__, "overrides": row.config_json or {}, "notes": None}
+    eff_cfg = effective_config(settings, row.config_json)
+    eff = {**eff_cfg.__dict__, "live_candidate_pipeline_enabled": settings.live_candidate_pipeline_enabled}
+    return {"read_only": False, "effective": eff, "overrides": row.config_json or {}, "notes": None}
 
 
 def spy_scalper_open_position_dict(db: Session) -> dict[str, Any] | None:
@@ -137,6 +161,7 @@ def spy_scalper_build_dashboard(db: Session, settings: Settings) -> StrategyDash
         )
 
     runtime_health = evaluate_spy_live_paper_readiness(db, settings, get_quote_cache()).as_extension_dict()
+    logs = [_row_to_log_dict(r) for r in spy_repo.recent_candidates(35)]
     return StrategyDashboardBundle(
         status=status,
         daily={
@@ -150,7 +175,7 @@ def spy_scalper_build_dashboard(db: Session, settings: Settings) -> StrategyDash
         skipped=skipped,
         trades=trades,
         metrics=metrics,
-        logs=[],
+        logs=logs,
         config=spy_scalper_get_config(db, settings),
         extensions={
             "summary": {"trade_day": trade_day, "summary": metrics},

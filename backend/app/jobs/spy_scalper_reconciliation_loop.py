@@ -7,6 +7,7 @@ from sqlalchemy.orm import Session
 
 from app.core.clock import utc_now
 from app.core.config import Settings
+from app.core.enums import AppMode
 from app.models.spy_scalper_fill import SpyScalperFill
 from app.repositories.spy_scalper_repository import SpyScalperRepository
 from app.repositories.strategy_bot_state_repository import SPY_SCALPER_SLUG, StrategyBotStateRepository
@@ -40,6 +41,9 @@ def run_spy_scalper_reconciliation_tick(
     settings: Settings,
     quote_cache: QuoteCache,
 ) -> None:
+    if settings.app_mode != AppMode.MOCK:
+        log.info("spy scalper reconciliation skipped: live paper requires real marks (APP_MODE != mock)")
+        return
     strat_repo = StrategyBotStateRepository(db)
     row = strat_repo.get_or_create(SPY_SCALPER_SLUG)
     if row.state != "running":

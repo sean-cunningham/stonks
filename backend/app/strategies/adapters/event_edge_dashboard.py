@@ -12,6 +12,7 @@ from app.jobs.scheduler import ensure_background_jobs_started, maybe_stop_backgr
 from app.repositories.bot_state_repository import BotStateRepository
 from app.schemas.strategy_dashboard import StrategyDashboardBundle, StrategyStatusBlock
 from app.strategies.registry import STRATEGY_EVENT_EDGE_V1, get_strategy_meta
+from app.strategies.spy_0dte_scalper.live_readiness import build_event_edge_runtime_health
 
 
 def _iso(dt) -> str | None:
@@ -33,6 +34,9 @@ def event_edge_status_block(db: Session, settings: Settings) -> StrategyStatusBl
         paper_only=paper_only,
         app_mode=str(settings.app_mode.value),
         open_position_id=open_id,
+        live_candidate_pipeline_enabled=settings.live_candidate_pipeline_enabled,
+        spy_scalper_synthetic_blocked=None,
+        spy_scalper_synthetic_block_reason=None,
     )
 
 
@@ -54,6 +58,7 @@ def event_edge_get_config(db: Session, settings: Settings) -> dict[str, Any]:
         "effective": {
             "app_mode": str(settings.app_mode.value),
             "bot_default_starting_cash": settings.bot_default_starting_cash,
+            "live_candidate_pipeline_enabled": settings.live_candidate_pipeline_enabled,
         },
         "overrides": None,
         "notes": "Event Edge config is environment-driven; per-strategy overrides are not supported.",
@@ -148,6 +153,7 @@ def event_edge_build_dashboard(db: Session, settings: Settings) -> StrategyDashb
         logs=logs,
         config=event_edge_get_config(db, settings),
         extensions={
+            "runtime_health": build_event_edge_runtime_health(settings),
             "analytics_summary": analytics_summary.model_dump(mode="json"),
             "setups": setups.model_dump(mode="json"),
             "recommendations": [r.model_dump(mode="json") for r in recommendations],

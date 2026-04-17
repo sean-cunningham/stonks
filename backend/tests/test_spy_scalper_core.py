@@ -138,7 +138,7 @@ def test_ai_filter_handles_empty_openai_output(monkeypatch):
     assert err == "empty_ai_output"
 
 
-def test_spy_scalper_blocks_without_live_quote_in_market_data_mode(db_session, monkeypatch):
+def test_spy_scalper_blocks_synthetic_path_in_market_data_mode(db_session, monkeypatch):
     monkeypatch.setenv("APP_MODE", "market_data")
     monkeypatch.setenv("TASTYTRADE_REFRESH_TOKEN", "test-refresh")
     monkeypatch.setenv("TASTYTRADE_ACCOUNT_NUMBER", "123456")
@@ -152,7 +152,7 @@ def test_spy_scalper_blocks_without_live_quote_in_market_data_mode(db_session, m
     strat.set_state(SPY_SCALPER_SLUG, "running")
     run_spy_scalper_tick(db_session, s, qc)
     blocked = db_session.scalar(
-        select(SpyScalperCandidateEvent).where(SpyScalperCandidateEvent.outcome == "blocked_missing_live_market"),
+        select(SpyScalperCandidateEvent).where(SpyScalperCandidateEvent.outcome == "blocked_synthetic_execution"),
     )
     assert blocked is not None
     get_settings.cache_clear()

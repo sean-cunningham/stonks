@@ -28,6 +28,9 @@ def test_event_edge_dashboard_ok(client: TestClient) -> None:
     assert body["status"]["strategy_id"] == "event-edge-v1"
     assert "extensions" in body
     assert body["extensions"]["full_status"] is not None
+    rh = body["extensions"]["runtime_health"]
+    assert isinstance(rh.get("live_candidate_pipeline_enabled"), bool)
+    assert "app_mode" in rh
 
 
 def test_spy_scalper_dashboard_ok(client: TestClient) -> None:
@@ -36,7 +39,7 @@ def test_spy_scalper_dashboard_ok(client: TestClient) -> None:
     body = r.json()
     assert body["status"]["strategy_id"] == "spy-0dte-scalper"
     assert isinstance(body["logs"], list)
-    assert body["logs"] == []
+    assert "runtime_health" in (body.get("extensions") or {})
 
 
 def test_config_shapes_are_normalized(client: TestClient) -> None:
@@ -46,12 +49,14 @@ def test_config_shapes_are_normalized(client: TestClient) -> None:
     assert set(ee_body.keys()) == {"read_only", "effective", "overrides", "notes"}
     assert ee_body["read_only"] is True
     assert ee_body["overrides"] is None
+    assert "live_candidate_pipeline_enabled" in ee_body["effective"]
 
     spy = client.get("/strategies/spy-0dte-scalper/config")
     assert spy.status_code == 200
     spy_body = spy.json()
     assert set(spy_body.keys()) == {"read_only", "effective", "overrides", "notes"}
     assert spy_body["read_only"] is False
+    assert "live_candidate_pipeline_enabled" in spy_body["effective"]
 
 
 def test_strategy_scoped_config_put_dispatch(client: TestClient) -> None:

@@ -110,13 +110,7 @@ def _try_live_candidate_pipeline(db: Session, settings: Settings, snap: MarketSn
     if not appr:
         return
     pb = PaperBroker(db, settings)
-    pb.execute_approved_open(
-        appr,
-        bid=snap.bid,
-        ask=snap.ask,
-        mid=snap.underlying_price,
-        reference_underlying=snap.underlying_price,
-    )
+    pb.execute_approved_open(appr, reference_underlying=snap.underlying_price)
     log.info("live candidate pipeline filled approved id=%s symbol=%s", tid, snap.symbol)
 
 
@@ -314,13 +308,7 @@ def run_market_tick(
         if not appr:
             return
         pb = PaperBroker(db, settings)
-        pb.execute_approved_open(
-            appr,
-            bid=snap.bid,
-            ask=snap.ask,
-            mid=snap.underlying_price,
-            reference_underlying=snap.underlying_price,
-        )
+        pb.execute_approved_open(appr, reference_underlying=snap.underlying_price)
         return
 
     log.info("market_tick branch=live app_mode=%s", settings.app_mode.value)
