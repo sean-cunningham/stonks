@@ -249,6 +249,20 @@ export interface StrategyListItemRead {
   has_skipped_feed: boolean;
 }
 
+export interface StrategyConfigRead {
+  read_only: boolean;
+  effective: Record<string, unknown>;
+  overrides: Record<string, unknown> | null;
+  notes: string | null;
+}
+
+export interface StrategyDailySummaryRead {
+  strategy_id: string;
+  trade_day: string | null;
+  metrics: Record<string, unknown>;
+  details: Record<string, unknown>;
+}
+
 /** Normalized dashboard bundle from GET /strategies/{id}/dashboard */
 export interface StrategyDashboardBundleRead {
   status: {
@@ -269,6 +283,6 @@ export interface StrategyDashboardBundleRead {
   trades: Record<string, unknown>[];
   metrics: Record<string, unknown>;
   logs: Record<string, unknown>[];
-  config: Record<string, unknown>;
+  config: StrategyConfigRead;
   extensions?: Record<string, unknown> | null;
 }

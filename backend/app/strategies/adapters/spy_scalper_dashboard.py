@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.clock import utc_now
 from app.core.config import Settings
+from app.jobs.scheduler import ensure_background_jobs_started, maybe_stop_background_jobs
 from app.repositories.spy_scalper_repository import SpyScalperRepository
 from app.repositories.strategy_bot_state_repository import SPY_SCALPER_SLUG, StrategyBotStateRepository
 from app.schemas.strategy_dashboard import StrategyDashboardBundle, StrategyStatusBlock
@@ -56,12 +57,14 @@ def spy_scalper_status_block(db: Session, settings: Settings) -> StrategyStatusB
 def spy_scalper_enable(db: Session, settings: Settings) -> StrategyStatusBlock:
     strat = StrategyBotStateRepository(db)
     strat.set_state(SPY_SCALPER_SLUG, "running", pause_reason=None, cooldown_until=None)
+    ensure_background_jobs_started(settings)
     return spy_scalper_status_block(db, settings)
 
 
 def spy_scalper_disable(db: Session, settings: Settings) -> StrategyStatusBlock:
     strat = StrategyBotStateRepository(db)
     strat.set_state(SPY_SCALPER_SLUG, "stopped", pause_reason=None)
+    maybe_stop_background_jobs()
     return spy_scalper_status_block(db, settings)
 
 
@@ -69,7 +72,12 @@ def spy_scalper_get_config(db: Session, settings: Settings) -> dict[str, Any]:
     strat = StrategyBotStateRepository(db)
     row = strat.get_or_create(SPY_SCALPER_SLUG)
     eff = effective_config(settings, row.config_json)
-    return {"defaults": eff.__dict__, "overrides": row.config_json or {}, "read_only": False}
+    return {
+        "read_only": False,
+        "effective": eff.__dict__,
+        "overrides": row.config_json or {},
+        "notes": None,
+    }
 
 
 def spy_scalper_put_config(db: Session, settings: Settings, overrides: dict[str, Any]) -> dict[str, Any]:
@@ -77,7 +85,7 @@ def spy_scalper_put_config(db: Session, settings: Settings, overrides: dict[str,
     strat.update_config_json(SPY_SCALPER_SLUG, overrides or {})
     row = strat.get_or_create(SPY_SCALPER_SLUG)
     eff = effective_config(settings, row.config_json)
-    return {"effective": eff.__dict__, "overrides": row.config_json or {}}
+    return {"read_only": False, "effective": eff.__dict__, "overrides": row.config_json or {}, "notes": None}
 
 
 def spy_scalper_open_position_dict(db: Session) -> dict[str, Any] | None:
@@ -140,7 +148,7 @@ def spy_scalper_build_dashboard(db: Session, settings: Settings) -> StrategyDash
         skipped=skipped,
         trades=trades,
         metrics=metrics,
-        logs=signals[:40],
+        logs=[],
         config=spy_scalper_get_config(db, settings),
         extensions={"summary": {"trade_day": trade_day, "summary": metrics}},
     )

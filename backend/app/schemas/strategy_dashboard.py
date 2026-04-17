@@ -40,3 +40,17 @@ class StrategyDashboardBundle(BaseModel):
     logs: list[dict[str, Any]] = Field(default_factory=list)
     config: dict[str, Any] = Field(default_factory=dict)
     extensions: dict[str, Any] | None = None
+
+
+class StrategyConfigRead(BaseModel):
+    read_only: bool
+    effective: dict[str, Any] = Field(default_factory=dict)
+    overrides: dict[str, Any] | None = None
+    notes: str | None = None
+
+
+class StrategyDailySummaryRead(BaseModel):
+    strategy_id: str
+    trade_day: str | None = None
+    metrics: dict[str, Any] = Field(default_factory=dict)
+    details: dict[str, Any] = Field(default_factory=dict)

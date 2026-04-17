@@ -186,7 +186,12 @@ export function EventEdgeLegacyPanels({
         <CandidatesPanel candidates={status.recent_candidates} />
         <RejectionsPanel rejections={status.recent_rejections} />
         <EventAnalysesPanel analyses={status.recent_event_analyses} />
-        <XEnrichPanel items={status.recent_x_enrichments} />
+        <details className="rounded border border-slate-800 bg-slate-950/30 p-2">
+          <summary className="cursor-pointer text-sm text-slate-300">Optional research data: x-enrichment</summary>
+          <div className="mt-2">
+            <XEnrichPanel items={status.recent_x_enrichments} />
+          </div>
+        </details>
         <FillsPanel fills={status.recent_fills} />
         <ApprovedTradesPanel trades={status.recent_trades} onOpenReview={onOpenReview} />
         <DecisionsPanel decisions={status.recent_decisions} />

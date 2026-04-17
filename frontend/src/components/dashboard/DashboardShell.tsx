@@ -8,13 +8,12 @@ export type DashboardShellProps = {
   bundle: StrategyDashboardBundleRead | null;
   error: Error | null;
   busy: string | null;
-  showPaperReset: boolean;
   apiBase: string;
   pollSeconds: number;
   onEnable: () => void;
   onDisable: () => void;
   onRefresh: () => void;
-  onPaperReset?: () => void;
+  headerActions?: ReactNode;
   children?: ReactNode;
 };
 
@@ -28,13 +27,12 @@ export function DashboardShell({
   bundle,
   error,
   busy,
-  showPaperReset,
   apiBase,
   pollSeconds,
   onEnable,
   onDisable,
   onRefresh,
-  onPaperReset,
+  headerActions,
   children,
 }: DashboardShellProps) {
   const st = bundle?.status;
@@ -66,16 +64,7 @@ export function DashboardShell({
             >
               Disable
             </button>
-            {showPaperReset && onPaperReset ? (
-              <button
-                type="button"
-                disabled={!!busy}
-                onClick={onPaperReset}
-                className="rounded bg-rose-700 px-3 py-1.5 text-sm font-medium text-white hover:bg-rose-600 disabled:opacity-50"
-              >
-                Paper reset (all strategies)
-              </button>
-            ) : null}
+            {headerActions}
             <button
               type="button"
               disabled={!!busy}

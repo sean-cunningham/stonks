@@ -68,7 +68,7 @@ def bot_stop(db: Session = Depends(get_db)) -> BotStateRead:
 
 @router.post("/paper-reset", response_model=BotStateRead)
 def paper_reset(db: Session = Depends(get_db)) -> BotStateRead:
-    """Destructive: clears trading history tables and resets paper cash."""
+    """Destructive global maintenance reset: clears data for all strategies."""
     stop_background_jobs()
     settings = get_settings()
     db.execute(delete(ParameterExperimentResult))

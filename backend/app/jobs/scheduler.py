@@ -1,9 +1,10 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from apscheduler.schedulers.background import BackgroundScheduler
+from sqlalchemy.exc import OperationalError
 
 from app.core.config import Settings
 from app.core.database import SessionLocal
@@ -16,6 +17,8 @@ from app.strategies.spy_0dte_scalper.strategy import run_spy_scalper_tick
 from app.jobs.strategy_schedule import scheduled_jobs_for_settings
 from app.services.market_data.quote_cache import QuoteCache
 from app.services.market_data.token_manager import TokenManager
+from app.repositories.bot_state_repository import BotStateRepository
+from app.repositories.strategy_bot_state_repository import SPY_SCALPER_SLUG, StrategyBotStateRepository
 
 if TYPE_CHECKING:
     pass
@@ -129,3 +132,29 @@ def stop_background_jobs() -> None:
         _scheduler.shutdown(wait=False)
         log.info("background scheduler stopped")
     _scheduler = None
+
+
+def _any_strategy_running() -> bool:
+    s = SessionLocal()
+    try:
+        try:
+            event_edge_running = BotStateRepository(s).get().state == "running"
+        except OperationalError:
+            event_edge_running = False
+        try:
+            spy_running = StrategyBotStateRepository(s).get_or_create(SPY_SCALPER_SLUG).state == "running"
+        except OperationalError:
+            spy_running = False
+        return event_edge_running or spy_running
+    finally:
+        s.close()
+
+
+def ensure_background_jobs_started(settings: Settings) -> None:
+    if _any_strategy_running():
+        start_background_jobs(settings)
+
+
+def maybe_stop_background_jobs() -> None:
+    if not _any_strategy_running():
+        stop_background_jobs()

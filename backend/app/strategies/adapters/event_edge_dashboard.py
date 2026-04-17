@@ -8,7 +8,7 @@ from app.api.analytics import build_analytics_summary, build_recommendation_read
 from app.api.status import build_status_response
 from app.core.config import Settings
 from app.core.enums import AppMode
-from app.jobs.scheduler import start_background_jobs, stop_background_jobs
+from app.jobs.scheduler import ensure_background_jobs_started, maybe_stop_background_jobs
 from app.repositories.bot_state_repository import BotStateRepository
 from app.schemas.strategy_dashboard import StrategyDashboardBundle, StrategyStatusBlock
 from app.strategies.registry import STRATEGY_EVENT_EDGE_V1, get_strategy_meta
@@ -37,23 +37,26 @@ def event_edge_status_block(db: Session, settings: Settings) -> StrategyStatusBl
 
 
 def event_edge_enable(db: Session, settings: Settings) -> StrategyStatusBlock:
-    start_background_jobs(settings)
     BotStateRepository(db).set_state("running", pause_reason=None)
+    ensure_background_jobs_started(settings)
     return event_edge_status_block(db, settings)
 
 
 def event_edge_disable(db: Session, settings: Settings) -> StrategyStatusBlock:
-    stop_background_jobs()
     BotStateRepository(db).set_state("stopped", pause_reason=None)
+    maybe_stop_background_jobs()
     return event_edge_status_block(db, settings)
 
 
 def event_edge_get_config(db: Session, settings: Settings) -> dict[str, Any]:
     return {
         "read_only": True,
-        "note": "Strategy A config is driven by environment (.env) and bot defaults; no per-strategy overrides API.",
-        "app_mode": str(settings.app_mode.value),
-        "bot_default_starting_cash": settings.bot_default_starting_cash,
+        "effective": {
+            "app_mode": str(settings.app_mode.value),
+            "bot_default_starting_cash": settings.bot_default_starting_cash,
+        },
+        "overrides": None,
+        "notes": "Event Edge config is environment-driven; per-strategy overrides are not supported.",
     }
 
 

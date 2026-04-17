@@ -6,14 +6,37 @@ from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+from sqlalchemy import delete
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.core.clock import utc_now
 from app.core.config import get_settings
+from app.models.active_position import ActivePosition
+from app.models.approved_trade import ApprovedTrade
+from app.models.candidate_trade import CandidateTrade
+from app.models.decision_snapshot import DecisionSnapshot
+from app.models.event_analysis import EventAnalysis
+from app.models.fill import Fill
+from app.models.market_snapshot import MarketSnapshot
+from app.models.parameter_experiment_result import ParameterExperimentResult
+from app.models.recommendation_item import RecommendationItem
+from app.models.rejected_trade import RejectedTrade
+from app.models.setup_performance_snapshot import SetupPerformanceSnapshot
+from app.models.spy_scalper_candidate_event import SpyScalperCandidateEvent
+from app.models.spy_scalper_daily_summary import SpyScalperDailySummary
+from app.models.spy_scalper_fill import SpyScalperFill
+from app.models.spy_scalper_position import SpyScalperPosition
+from app.models.trade_review import TradeReview
+from app.models.x_enrichment import XEnrichment
+from app.repositories.account_repository import AccountRepository
+from app.repositories.bot_state_repository import BotStateRepository
+from app.repositories.strategy_bot_state_repository import SPY_SCALPER_SLUG, StrategyBotStateRepository
 from app.repositories.spy_scalper_repository import SpyScalperRepository
 from app.schemas.strategy_dashboard import (
+    StrategyConfigRead,
     StrategyDashboardBundle,
+    StrategyDailySummaryRead,
     StrategyListItem,
     StrategyStatusBlock,
 )
@@ -100,8 +123,8 @@ def strategy_disable(strategy_id: str, db: Session = Depends(get_db)) -> Strateg
     return spy_scalper_disable(db, settings)
 
 
-@router.get("/{strategy_id}/config")
-def strategy_get_config(strategy_id: str, db: Session = Depends(get_db)) -> dict[str, Any]:
+@router.get("/{strategy_id}/config", response_model=StrategyConfigRead)
+def strategy_get_config(strategy_id: str, db: Session = Depends(get_db)) -> StrategyConfigRead:
     _require_strategy(strategy_id)
     settings = get_settings()
     if strategy_id == STRATEGY_EVENT_EDGE_V1:
@@ -113,12 +136,12 @@ class StrategyConfigPayload(BaseModel):
     overrides: dict[str, Any] = Field(default_factory=dict)
 
 
-@router.put("/{strategy_id}/config")
+@router.put("/{strategy_id}/config", response_model=StrategyConfigRead)
 def strategy_put_config(
     strategy_id: str,
     body: StrategyConfigPayload,
     db: Session = Depends(get_db),
-) -> dict[str, Any]:
+) -> StrategyConfigRead:
     _require_strategy(strategy_id)
     settings = get_settings()
     meta = get_strategy_meta(strategy_id)
@@ -128,18 +151,66 @@ def strategy_put_config(
     return spy_scalper_put_config(db, settings, body.overrides)
 
 
-@router.get("/{strategy_id}/metrics/daily")
-def strategy_metrics_daily(strategy_id: str, db: Session = Depends(get_db)) -> dict[str, Any]:
+@router.post("/{strategy_id}/paper-reset", response_model=StrategyStatusBlock)
+def strategy_paper_reset(strategy_id: str, db: Session = Depends(get_db)) -> StrategyStatusBlock:
+    _require_strategy(strategy_id)
+    settings = get_settings()
+    if strategy_id == STRATEGY_EVENT_EDGE_V1:
+        db.execute(delete(ParameterExperimentResult))
+        db.execute(delete(RecommendationItem))
+        db.execute(delete(DecisionSnapshot))
+        db.execute(delete(TradeReview))
+        db.execute(delete(SetupPerformanceSnapshot))
+        db.execute(delete(Fill))
+        db.execute(delete(XEnrichment))
+        db.execute(delete(ActivePosition))
+        db.execute(delete(ApprovedTrade))
+        db.execute(delete(RejectedTrade))
+        db.execute(delete(CandidateTrade))
+        db.execute(delete(EventAnalysis))
+        db.execute(delete(MarketSnapshot))
+        db.commit()
+        acc_repo = AccountRepository(db)
+        acc = acc_repo.get_primary()
+        if acc:
+            acc.cash_balance = settings.bot_default_starting_cash
+            acc.equity = settings.bot_default_starting_cash
+            acc.realized_pnl = 0.0
+            acc.unrealized_pnl = 0.0
+            acc.updated_at = utc_now()
+            db.add(acc)
+            db.commit()
+        else:
+            acc_repo.ensure_primary(settings.bot_default_starting_cash)
+        BotStateRepository(db).set_state("stopped", pause_reason=None, cooldown_until=None)
+        return event_edge_disable(db, settings)
+
+    db.execute(delete(SpyScalperFill))
+    db.execute(delete(SpyScalperPosition))
+    db.execute(delete(SpyScalperCandidateEvent))
+    db.execute(delete(SpyScalperDailySummary))
+    db.commit()
+    StrategyBotStateRepository(db).set_state(SPY_SCALPER_SLUG, "stopped", pause_reason=None, cooldown_until=None)
+    return spy_scalper_disable(db, settings)
+
+
+@router.get("/{strategy_id}/metrics/daily", response_model=StrategyDailySummaryRead)
+def strategy_metrics_daily(strategy_id: str, db: Session = Depends(get_db)) -> StrategyDailySummaryRead:
     _require_strategy(strategy_id)
     settings = get_settings()
     if strategy_id == STRATEGY_EVENT_EDGE_V1:
         bundle = event_edge_build_dashboard(db, settings)
-        return bundle.metrics
+        return StrategyDailySummaryRead(strategy_id=strategy_id, trade_day=None, metrics=bundle.metrics, details={})
     trade_day = utc_now().date().isoformat()
     spy_repo = SpyScalperRepository(db)
     summary = spy_repo.get_daily_summary(trade_day)
     recent = spy_repo.recent_closed_positions(40)
-    return build_daily_metrics(summary, recent)
+    return StrategyDailySummaryRead(
+        strategy_id=strategy_id,
+        trade_day=trade_day,
+        metrics=build_daily_metrics(summary, recent),
+        details={},
+    )
 
 
 @router.get("/{strategy_id}/signals/recent")
@@ -188,15 +259,20 @@ def strategy_position(strategy_id: str, db: Session = Depends(get_db)) -> dict[s
     return spy_scalper_open_position_dict(db)
 
 
-@router.get("/{strategy_id}/summary/daily")
-def strategy_summary_daily(strategy_id: str, db: Session = Depends(get_db)) -> dict[str, Any]:
+@router.get("/{strategy_id}/summary/daily", response_model=StrategyDailySummaryRead)
+def strategy_summary_daily(strategy_id: str, db: Session = Depends(get_db)) -> StrategyDailySummaryRead:
     _require_strategy(strategy_id)
     settings = get_settings()
     if strategy_id == STRATEGY_EVENT_EDGE_V1:
         b = event_edge_build_dashboard(db, settings)
-        return {"trade_day": None, "summary": b.metrics, "daily": b.daily}
+        return StrategyDailySummaryRead(strategy_id=strategy_id, trade_day=None, metrics=b.metrics, details=b.daily)
     trade_day = utc_now().date().isoformat()
     spy_repo = SpyScalperRepository(db)
     summary = spy_repo.get_daily_summary(trade_day)
     recent = spy_repo.recent_closed_positions(40)
-    return {"trade_day": trade_day, "summary": build_daily_metrics(summary, recent)}
+    return StrategyDailySummaryRead(
+        strategy_id=strategy_id,
+        trade_day=trade_day,
+        metrics=build_daily_metrics(summary, recent),
+        details={},
+    )
