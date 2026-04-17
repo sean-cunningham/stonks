@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.repositories.account_repository import AccountRepository
 from app.repositories.bot_state_repository import BotStateRepository
 from app.repositories.candidate_repository import CandidateRepository
@@ -31,9 +33,9 @@ def _iso(dt) -> str:
     return dt.isoformat() if dt else ""
 
 
-@router.get("/status", response_model=StatusResponse)
-def get_status(db: Session = Depends(get_db)) -> StatusResponse:
-    settings = get_settings()
+def build_status_response(db: Session, settings: Settings | None = None) -> StatusResponse:
+    if settings is None:
+        settings = get_settings()
     acc_repo = AccountRepository(db)
     bot_repo = BotStateRepository(db)
     pos_repo = PositionRepository(db)
@@ -212,3 +214,8 @@ def get_status(db: Session = Depends(get_db)) -> StatusResponse:
         unrealized_pnl=acc.unrealized_pnl,
         analytics_compact=AnalyticsCompactBlock(**compact_summary_for_status(load_all_reviews(db))),
     )
+
+
+@router.get("/status", response_model=StatusResponse)
+def get_status(db: Session = Depends(get_db)) -> StatusResponse:
+    return build_status_response(db, get_settings())

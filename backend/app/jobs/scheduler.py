@@ -13,6 +13,7 @@ from app.jobs.reconciliation_loop import run_reconciliation_tick
 from app.jobs.spy_scalper_reconciliation_loop import run_spy_scalper_reconciliation_tick
 from app.jobs.token_refresh_loop import run_token_tick
 from app.strategies.spy_0dte_scalper.strategy import run_spy_scalper_tick
+from app.jobs.strategy_schedule import scheduled_jobs_for_settings
 from app.services.market_data.quote_cache import QuoteCache
 from app.services.market_data.token_manager import TokenManager
 
@@ -91,24 +92,33 @@ def start_background_jobs(settings: Settings) -> None:
         finally:
             s.close()
 
-    _scheduler.add_job(market_job, "interval", seconds=45, id="market_tick", replace_existing=True)
-    _scheduler.add_job(event_job, "interval", seconds=120, id="event_tick", replace_existing=True)
-    _scheduler.add_job(recon_job, "interval", seconds=300, id="recon_tick", replace_existing=True)
-    _scheduler.add_job(token_job, "interval", hours=1, id="token_tick", replace_existing=True)
-    _scheduler.add_job(
-        spy_scalper_scan_job,
-        "interval",
-        seconds=max(15, int(settings.spy_scalper_job_interval_seconds)),
-        id="spy_scalper_scan",
-        replace_existing=True,
-    )
-    _scheduler.add_job(
-        spy_scalper_recon_job,
-        "interval",
-        seconds=max(15, int(settings.spy_scalper_recon_interval_seconds)),
-        id="spy_scalper_recon",
-        replace_existing=True,
-    )
+    _job_callables: dict[str, Callable[[], None]] = {
+        "market_tick": market_job,
+        "event_tick": event_job,
+        "recon_tick": recon_job,
+        "token_tick": token_job,
+        "spy_scalper_scan": spy_scalper_scan_job,
+        "spy_scalper_recon": spy_scalper_recon_job,
+    }
+
+    for meta in scheduled_jobs_for_settings(settings):
+        fn = _job_callables.get(meta.job_id)
+        if not fn:
+            log.warning("scheduler: missing callable for job_id=%s", meta.job_id)
+            continue
+        _scheduler.add_job(
+            fn,
+            "interval",
+            seconds=meta.interval_seconds,
+            id=meta.job_id,
+            replace_existing=True,
+        )
+        log.debug(
+            "scheduler registered job_id=%s strategy_id=%s every=%ss",
+            meta.job_id,
+            meta.strategy_id,
+            meta.interval_seconds,
+        )
     _scheduler.start()
     log.info("background scheduler started")
 

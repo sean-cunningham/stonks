@@ -32,8 +32,7 @@ def _iso(dt) -> str:
     return dt.isoformat() if dt else ""
 
 
-@router.get("/summary", response_model=AnalyticsSummaryResponse)
-def analytics_summary(db: Session = Depends(get_db)) -> AnalyticsSummaryResponse:
+def build_analytics_summary(db: Session) -> AnalyticsSummaryResponse:
     rows = load_all_reviews(db)
     return AnalyticsSummaryResponse(
         overall=summarize_global(rows),
@@ -47,21 +46,11 @@ def analytics_summary(db: Session = Depends(get_db)) -> AnalyticsSummaryResponse
     )
 
 
-@router.get("/setups", response_model=SetupSliceResponse)
-def analytics_setups(db: Session = Depends(get_db)) -> SetupSliceResponse:
+def build_setups_slice(db: Session) -> SetupSliceResponse:
     return SetupSliceResponse(setups=summarize_by_setup(load_all_reviews(db)))
 
 
-@router.get("/symbols", response_model=SymbolSliceResponse)
-def analytics_symbols(db: Session = Depends(get_db)) -> SymbolSliceResponse:
-    return SymbolSliceResponse(symbols=summarize_by_symbol(load_all_reviews(db)))
-
-
-@router.get("/recommendations", response_model=list[RecommendationRead])
-def analytics_recommendations(
-    refresh: bool = Query(default=True),
-    db: Session = Depends(get_db),
-) -> list[RecommendationRead]:
+def build_recommendation_reads(db: Session, *, refresh: bool) -> list[RecommendationRead]:
     if refresh:
         refresh_recommendations(db)
     repo = RecommendationRepository(db)
@@ -79,6 +68,29 @@ def analytics_recommendations(
         )
         for r in repo.list_by_status(limit=100)
     ]
+
+
+@router.get("/summary", response_model=AnalyticsSummaryResponse)
+def analytics_summary(db: Session = Depends(get_db)) -> AnalyticsSummaryResponse:
+    return build_analytics_summary(db)
+
+
+@router.get("/setups", response_model=SetupSliceResponse)
+def analytics_setups(db: Session = Depends(get_db)) -> SetupSliceResponse:
+    return build_setups_slice(db)
+
+
+@router.get("/symbols", response_model=SymbolSliceResponse)
+def analytics_symbols(db: Session = Depends(get_db)) -> SymbolSliceResponse:
+    return SymbolSliceResponse(symbols=summarize_by_symbol(load_all_reviews(db)))
+
+
+@router.get("/recommendations", response_model=list[RecommendationRead])
+def analytics_recommendations(
+    refresh: bool = Query(default=True),
+    db: Session = Depends(get_db),
+) -> list[RecommendationRead]:
+    return build_recommendation_reads(db, refresh=refresh)
 
 
 @router.get("/trades/{trade_id}/review", response_model=TradeReviewRead)

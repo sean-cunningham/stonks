@@ -86,6 +86,28 @@ class SpyScalperRepository:
         q = select(SpyScalperCandidateEvent).order_by(desc(SpyScalperCandidateEvent.created_at)).limit(limit)
         return list(self._db.scalars(q).all())
 
+    _SKIP_OUTCOMES = frozenset(
+        {
+            "risk_reject",
+            "no_contract",
+            "ai_pass",
+            "below_exec_floor",
+            "post_ai_below_floor",
+            "no_setup",
+            "all_below_exec_floor",
+            "no_setup_met_floor",
+        }
+    )
+
+    def recent_skipped_candidates(self, limit: int = 50) -> list[SpyScalperCandidateEvent]:
+        q = (
+            select(SpyScalperCandidateEvent)
+            .where(SpyScalperCandidateEvent.outcome.in_(self._SKIP_OUTCOMES))
+            .order_by(desc(SpyScalperCandidateEvent.created_at))
+            .limit(limit)
+        )
+        return list(self._db.scalars(q).all())
+
     def recent_closed_positions(self, limit: int = 30) -> list[SpyScalperPosition]:
         q = (
             select(SpyScalperPosition)

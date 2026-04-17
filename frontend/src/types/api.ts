@@ -241,24 +241,34 @@ export interface DashboardBundle {
   recommendations: RecommendationRead[];
 }
 
-export interface SpyScalperStatusRead {
-  strategy_slug: string;
-  state: string;
-  pause_reason: string | null;
-  cooldown_until: string | null;
-  paper_only: boolean;
-  open_position_id: number | null;
+export interface StrategyListItemRead {
+  strategy_id: string;
+  display_name: string;
+  description: string;
+  has_config_put: boolean;
+  has_skipped_feed: boolean;
 }
 
-export interface SpyScalperSignalRead {
-  id: number;
-  created_at: string | null;
-  trade_day: string;
-  outcome: string;
-  setup_family: string | null;
-  direction: string | null;
-  base_score: number | null;
-  ai_adjustment: number | null;
-  final_score: number | null;
-  reason: string | null;
+/** Normalized dashboard bundle from GET /strategies/{id}/dashboard */
+export interface StrategyDashboardBundleRead {
+  status: {
+    strategy_id: string;
+    display_name: string;
+    state: string;
+    pause_reason: string | null;
+    cooldown_until: string | null;
+    paper_only: boolean;
+    app_mode: string;
+    open_position_id: number | null;
+  };
+  daily: Record<string, unknown>;
+  balances: Record<string, unknown> | null;
+  open_position: Record<string, unknown> | null;
+  signals: Record<string, unknown>[];
+  skipped: Record<string, unknown>[];
+  trades: Record<string, unknown>[];
+  metrics: Record<string, unknown>;
+  logs: Record<string, unknown>[];
+  config: Record<string, unknown>;
+  extensions?: Record<string, unknown> | null;
 }
